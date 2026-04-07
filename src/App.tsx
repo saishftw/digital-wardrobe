@@ -286,7 +286,12 @@ export default function App() {
     <div className="min-h-screen bg-[#FDFDFD] text-[#1A1A1A] font-sans selection:bg-[#1A1A1A] selection:text-white">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#E5E5E5] px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-semibold tracking-tight italic serif">Wardrobe</h1>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-[#1A1A1A] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+            <Shirt size={18} className="text-white" />
+          </div>
+          <h1 className="text-xl font-semibold tracking-tight italic serif">Digital Wardrobe</h1>
+        </div>
         <div className="flex items-center gap-3">
           {view === 'Wardrobe' && (
             <button 

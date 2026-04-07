@@ -6,8 +6,6 @@ export const INITIAL_PIECES: Piece[] = [
   { id: 'b1', title: 'Black Pleated Pants', type: 'Bottom', category: 'Pants', color: 'Black', hex: '#000000', status: 'Owned', createdAt: 1711710000000 },
   { id: 'b2', title: 'Beige Linen Pants', type: 'Bottom', category: 'Pants', color: 'Beige', hex: '#F5F5DC', status: 'Owned', createdAt: 1711710000001 },
   { id: 'b3', title: 'Light-blue Denim', type: 'Bottom', category: 'Pants', color: 'Light Blue', hex: '#ADD8E6', status: 'Owned', createdAt: 1711710000002 },
-  { id: 'b4', title: 'Navy Chinos', type: 'Bottom', category: 'Pants', color: 'Navy', hex: '#000044', status: 'Owned', createdAt: 1711710000003 },
-  { id: 'b5', title: 'Beige Chinos', type: 'Bottom', category: 'Pants', color: 'Beige', hex: '#F5F5DC', status: 'Owned', createdAt: 1711710000004 },
   { id: 'b6', title: 'Dark Beige Chinos', type: 'Bottom', category: 'Pants', color: 'Dark Beige', hex: '#968966', status: 'Owned', createdAt: 1711710000026 },
 
   // Tops
