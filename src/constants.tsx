@@ -8,6 +8,7 @@ export const INITIAL_PIECES: Piece[] = [
   { id: 'b3', title: 'Light-blue Denim', type: 'Bottom', category: 'Pants', color: 'Light Blue', hex: '#ADD8E6', status: 'Owned', createdAt: 1711710000002 },
   { id: 'b4', title: 'Navy Chinos', type: 'Bottom', category: 'Pants', color: 'Navy', hex: '#000044', status: 'Owned', createdAt: 1711710000003 },
   { id: 'b5', title: 'Beige Chinos', type: 'Bottom', category: 'Pants', color: 'Beige', hex: '#F5F5DC', status: 'Owned', createdAt: 1711710000004 },
+  { id: 'b6', title: 'Dark Beige Chinos', type: 'Bottom', category: 'Pants', color: 'Dark Beige', hex: '#968966', status: 'Owned', createdAt: 1711710000026 },
 
   // Tops
   { id: 't1', title: 'Slate-blue Corduroy Shirt', type: 'Top', category: 'Shirt (LS)', color: 'Slate Blue', hex: '#708090', status: 'Owned', createdAt: 1711710000005 },
@@ -30,9 +31,19 @@ export const INITIAL_PIECES: Piece[] = [
   { id: 't18', title: 'Beige Linen Shirt (Blue Birds)', type: 'Top', category: 'Shirt (SS)', color: 'Beige', hex: '#F5F5DC', status: 'Owned', createdAt: 1711710000022 },
   { id: 't19', title: 'Navy Striped Shirt (Half-sleeve)', type: 'Top', category: 'Shirt (SS)', color: 'Navy Striped', hex: '#000044', status: 'Owned', createdAt: 1711710000023 },
   { id: 't20', title: 'Navy Oversized Shirt', type: 'Top', category: 'Shirt (SS)', color: 'Navy', hex: '#000044', status: 'Owned', createdAt: 1711710000024 },
+  { id: 't21', title: 'Botanical Print Beige Kurta', type: 'Top', category: 'Other', color: 'Beige', hex: '#F5F5DC', status: 'Owned', createdAt: 1711710000027 },
+  { id: 't22', title: 'White Formal Shirt', type: 'Top', category: 'Shirt (LS)', color: 'White', hex: '#FFFFFF', status: 'Owned', createdAt: 1711710000028 },
 
   // Outer
   { id: 'o1', title: 'Black Bomber Jacket', type: 'Outer', category: 'Jacket', color: 'Black', hex: '#000000', status: 'Owned', createdAt: 1711710000025 },
+  { id: 'o2', title: 'Rust Harrington Jacket', type: 'Outer', category: 'Jacket', color: 'Rust', hex: '#A0522D', status: 'Owned', createdAt: 1711710000029 },
+
+  // Shoes
+  { id: 's1', title: 'NB 2002R', type: 'Shoes', category: 'Sneakers', color: 'Black/Grey', hex: '#444444', status: 'Owned', createdAt: 1711710000030 },
+  { id: 's2', title: 'Adidas Sambas', type: 'Shoes', category: 'Sneakers', color: 'White/Black', hex: '#FFFFFF', status: 'Owned', createdAt: 1711710000031 },
+
+  // Accessories
+  { id: 'a1', title: 'Red Slim Tie', type: 'Accessory', category: 'Other', color: 'Red', hex: '#FF0000', status: 'Owned', createdAt: 1711710000032 },
 ];
 
 export const INITIAL_OUTFITS: Outfit[] = [
@@ -71,6 +82,39 @@ export const INITIAL_OUTFITS: Outfit[] = [
   { id: 'o31', bottomId: 'b3', topId: 't19', rating: 7, occasion: ['Casual'], weather: 'Warm' },
   { id: 'o32', bottomId: 'b3', topId: 't20', rating: 9, occasion: ['Casual'], weather: 'Warm' },
   { id: 'o33', bottomId: 'b3', topId: 't13', rating: 6.5, occasion: ['Casual'], weather: 'Warm' },
+
+  // Rust Harrington Jacket Combinations
+  { id: 'o34', bottomId: 'b1', topId: 't10', outerId: 'o2', rating: 8, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Clean monochrome base, rust as the only color.' },
+  { id: 'o35', bottomId: 'b1', topId: 't2', outerId: 'o2', rating: 9, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Strongest three-tone — white, rust, black. Very Tokyo.' },
+  { id: 'o36', bottomId: 'b1', topId: 't3', outerId: 'o2', rating: 10, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Best dinner look. Three distinct earthy tones.' },
+  { id: 'o37', bottomId: 'b2', topId: 't10', outerId: 'o2', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Dark tee, warm jacket, light base.' },
+  { id: 'o38', bottomId: 'b2', topId: 't2', outerId: 'o2', rating: 7, occasion: ['Casual'], weather: 'Cool', notes: 'Needs dark shoes to anchor.' },
+  { id: 'o39', bottomId: 'b2', topId: 't3', outerId: 'o2', rating: 9, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Earthy tonal — refined.' },
+  { id: 'o40', bottomId: 'b3', topId: 't10', outerId: 'o2', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Warm rust over dark tee, cool blue base.' },
+  { id: 'o41', bottomId: 'b3', topId: 't2', outerId: 'o2', rating: 9, occasion: ['Casual'], weather: 'Cool', notes: 'Light + cool + warm — very fresh.' },
+  { id: 'o42', bottomId: 'b3', topId: 't3', outerId: 'o2', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Earthy upper half, cool lower half.' },
+  { id: 'o43', bottomId: 'b6', topId: 't10', outerId: 'o2', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Needs the black tee to anchor.' },
+  { id: 'o44', bottomId: 'b6', topId: 't2', outerId: 'o2', rating: 7, occasion: ['Casual'], weather: 'Cool', notes: 'Similar warm tones competing. Risky.' },
+  { id: 'o45', bottomId: 'b6', topId: 't3', outerId: 'o2', rating: 9, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Three earthy tones at different depths.' },
+
+  // Dark Beige Chinos Combinations
+  { id: 'o46', bottomId: 'b6', topId: 't10', rating: 9, occasion: ['Casual'], weather: 'Warm', notes: 'Foolproof combo. Dark anchor, warm neutral.' },
+  { id: 'o47', bottomId: 'b6', topId: 't2', rating: 8, occasion: ['Casual'], weather: 'Warm', notes: 'Strong contrast — crisp white on warm beige.' },
+  { id: 'o48', bottomId: 'b6', topId: 't15', rating: 10, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Strongest color pairing. Rich maroon against soft beige.' },
+  { id: 'o49', bottomId: 'b6', topId: 't3', rating: 9, occasion: ['Casual'], weather: 'Cool', notes: 'Deep earthy green on warm beige.' },
+  { id: 'o50', bottomId: 'b6', topId: 't9', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Sweatshirt version of maroon pairing.' },
+  { id: 'o51', bottomId: 'b6', topId: 't10', outerId: 't1', rating: 9, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Blue, black, beige — one of your best.' },
+  { id: 'o52', bottomId: 'b6', topId: 't10', outerId: 't4', rating: 8, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Deeper navy, more formal energy.' },
+  { id: 'o53', bottomId: 'b6', topId: 't2', outerId: 't4', rating: 8, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Navy over white over beige — clean and light.' },
+  { id: 'o54', bottomId: 'b6', topId: 't10', outerId: 't12', rating: 9, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Dark green over black tee, warm beige base.' },
+  { id: 'o55', bottomId: 'b6', topId: 't2', outerId: 't12', rating: 8, occasion: ['Smart Casual'], weather: 'Cool', notes: 'Green over white over beige — fresh tonal.' },
+  { id: 'o56', bottomId: 'b6', topId: 't10', outerId: 't11', rating: 8, occasion: ['Casual'], weather: 'Warm', notes: 'White texture over dark tee, warm beige base.' },
+  { id: 'o57', bottomId: 'b6', topId: 't10', outerId: 't20', rating: 8, occasion: ['Casual'], weather: 'Warm', notes: 'Navy over black over beige — relaxed.' },
+
+  // Formal & Traditional
+  { id: 'o58', bottomId: 'b1', topId: 't22', accessoryId: 'a1', rating: 9, occasion: ['Formal'], weather: 'Cool', notes: 'White shirt + red tie + pleated pants' },
+  { id: 'o59', bottomId: 'b1', topId: 't21', rating: 8, occasion: ['Traditional'], weather: 'Warm', notes: 'Kurta + pleated pants black' },
+  { id: 'o60', bottomId: 'b1', topId: 't22', outerId: 'o1', accessoryId: 'a1', rating: 10, occasion: ['Formal'], weather: 'Cool', notes: 'Bomber jacket + shirt + tie combo — very sharp formal look.' },
 ];
 
 export const CrewNeckIcon = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (

@@ -21,6 +21,7 @@ export interface Outfit {
   bottomId: string;
   topId: string;
   outerId?: string;
+  accessoryId?: string;
   rating: number;
   occasion: string[];
   weather: Weather;

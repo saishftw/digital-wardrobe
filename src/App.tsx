@@ -392,6 +392,7 @@ export default function App() {
             topId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Top' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Top' ? selectedPieceId : selectedPieceId2) : ''}
             bottomId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Bottom' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Bottom' ? selectedPieceId : selectedPieceId2) : ''}
             outerId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Outer' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Outer' ? selectedPieceId : selectedPieceId2) : ''}
+            accessoryId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Accessory' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Accessory' ? selectedPieceId : selectedPieceId2) : ''}
             onClose={() => setShowAddOutfit(false)}
             onSave={(o) => {
               addOutfit(o);
@@ -715,8 +716,9 @@ function OutfitsView({ outfits, pieces, onViewOutfit }: { outfits: Outfit[], pie
           const top = getPiece(outfit.topId);
           const bottom = getPiece(outfit.bottomId);
           const outer = outfit.outerId ? getPiece(outfit.outerId) : null;
+          const accessory = outfit.accessoryId ? getPiece(outfit.accessoryId) : null;
 
-          const missingCount = [top, bottom, outer].filter(p => p && p.status === 'Wishlist').length;
+          const missingCount = [top, bottom, outer, accessory].filter(p => p && p.status === 'Wishlist').length;
 
           return (
             <div 
@@ -749,12 +751,15 @@ function OutfitsView({ outfits, pieces, onViewOutfit }: { outfits: Outfit[], pie
                   <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform" />
                   <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-75" />
                   {outer && (
-                    <PieceIcon category={outer?.category || 'Other'} color={outer?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-150" />
+                    <PieceIcon category={outer?.category || 'Other'} color={outer?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-100" />
+                  )}
+                  {accessory && (
+                    <PieceIcon category={accessory?.category || 'Other'} color={accessory?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-150" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium leading-snug mb-2">
-                    {top?.title} + {bottom?.title} {outer ? `+ ${outer.title}` : ''}
+                    {top?.title} + {bottom?.title} {outer ? `+ ${outer.title}` : ''} {accessory ? `+ ${accessory.title}` : ''}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {outfit.occasion.map(occ => (
@@ -1189,15 +1194,19 @@ function EventsView({
                               if (!outfit) return null;
                               const top = pieces.find(p => p.id === outfit.topId);
                               const bottom = pieces.find(p => p.id === outfit.bottomId);
+                              const outer = outfit.outerId ? pieces.find(p => p.id === outfit.outerId) : null;
+                              const accessory = outfit.accessoryId ? pieces.find(p => p.id === outfit.accessoryId) : null;
                               return (
                                 <div key={eo.outfitId} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${eo.isWorn ? 'bg-gray-50 border-transparent opacity-60' : 'bg-white border-[#E5E5E5]'}`}>
                                   <div className="flex items-center gap-3">
                                     <div className="flex -space-x-2">
                                       <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={6} />
                                       <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={6} />
+                                      {outer && <PieceIcon category={outer.category} color={outer.hex} size={6} />}
+                                      {accessory && <PieceIcon category={accessory.category} color={accessory.hex} size={6} />}
                                     </div>
                                     <div className="space-y-0.5">
-                                      <p className="text-xs font-bold">{top?.title} + {bottom?.title}</p>
+                                      <p className="text-xs font-bold">{top?.title} + {bottom?.title} {outer ? `+ ${outer.title}` : ''} {accessory ? `+ ${accessory.title}` : ''}</p>
                                       <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion.join(', ')}</p>
                                     </div>
                                   </div>
@@ -1625,10 +1634,11 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
   const top = getPiece(outfit.topId);
   const bottom = getPiece(outfit.bottomId);
   const outer = outfit.outerId ? getPiece(outfit.outerId) : null;
+  const accessory = outfit.accessoryId ? getPiece(outfit.accessoryId) : null;
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState(outfit.notes || '');
 
-  const outfitTitle = `${top?.title || 'Top'} + ${bottom?.title || 'Bottom'}${outer ? ` + ${outer.title}` : ''}`;
+  const outfitTitle = `${top?.title || 'Top'} + ${bottom?.title || 'Bottom'}${outer ? ` + ${outer.title}` : ''}${accessory ? ` + ${accessory.title}` : ''}`;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
@@ -1670,6 +1680,11 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
               {outer && (
                 <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-50 shadow-lg flex items-center justify-center overflow-hidden">
                   <PieceIcon category={outer?.category || 'Other'} color={outer?.hex} size={12} />
+                </div>
+              )}
+              {accessory && (
+                <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-50 shadow-lg flex items-center justify-center overflow-hidden">
+                  <PieceIcon category={accessory?.category || 'Other'} color={accessory?.hex} size={12} />
                 </div>
               )}
             </div>
@@ -1749,7 +1764,7 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
   );
 }
 
-function AddOutfitModal({ topId, bottomId, outerId, onClose, onSave }: { topId: string, bottomId: string, outerId: string, onClose: () => void, onSave: (o: Omit<Outfit, 'id'>) => void }) {
+function AddOutfitModal({ topId, bottomId, outerId, accessoryId, onClose, onSave }: { topId: string, bottomId: string, outerId: string, accessoryId: string, onClose: () => void, onSave: (o: Omit<Outfit, 'id'>) => void }) {
   const [weather, setWeather] = useState<Weather>('Cool');
   const [rating, setRating] = useState(7);
   const [occasions, setOccasions] = useState<string[]>(['Casual']);
@@ -1852,7 +1867,7 @@ function AddOutfitModal({ topId, bottomId, outerId, onClose, onSave }: { topId: 
         </div>
 
         <button 
-          onClick={() => onSave({ topId, bottomId, outerId, weather, occasion: occasions, rating, notes })}
+          onClick={() => onSave({ topId, bottomId, outerId, accessoryId, weather, occasion: occasions, rating, notes })}
           className="w-full bg-[#1A1A1A] text-white py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-black transition-colors"
         >
           Save Outfit
