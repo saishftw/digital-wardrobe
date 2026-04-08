@@ -38,7 +38,7 @@ export const INITIAL_PIECES: Piece[] = [
 
   // Shoes
   { id: 's1', title: 'NB 2002R', type: 'Shoes', category: 'Sneakers', color: 'Black/Grey', hex: '#444444', status: 'Owned', createdAt: 1711710000030 },
-  { id: 's2', title: 'Adidas Sambas', type: 'Shoes', category: 'Sneakers', color: 'White/Black', hex: '#FFFFFF', status: 'Owned', createdAt: 1711710000031 },
+  { id: 's2', title: 'Adidas Sambas', type: 'Shoes', category: 'Sneakers', color: 'Black', hex: '#FFFFFF', status: 'Owned', createdAt: 1711710000031 },
 
   // Accessories
   { id: 'a1', title: 'Red Slim Tie', type: 'Accessory', category: 'Other', color: 'Red', hex: '#FF0000', status: 'Owned', createdAt: 1711710000032 },
@@ -114,6 +114,16 @@ export const INITIAL_OUTFITS: Outfit[] = [
   { id: 'o59', bottomId: 'b1', topId: 't21', rating: 8, occasion: ['Traditional'], weather: 'Warm', notes: 'Kurta + pleated pants black' },
   { id: 'o60', bottomId: 'b1', topId: 't22', outerId: 'o1', accessoryId: 'a1', rating: 10, occasion: ['Formal'], weather: 'Cool', notes: 'Bomber jacket + shirt + tie combo — very sharp formal look.' },
 ];
+
+export const WardrobeLogo = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M12 7V4a2 2 0 1 1 4 0" />
+    <path d="M2 13c0-2.5 3-5 10-5s10 2.5 10 5" />
+    <path d="M2 13h20" />
+    <path d="M18 4.5l1 1-1 1-1-1z" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="13" r="0.75" fill="currentColor" stroke="none" />
+  </svg>
+);
 
 export const CrewNeckIcon = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>

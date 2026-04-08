@@ -55,6 +55,7 @@ import {
 } from './types';
 import { storageService } from './storageService';
 import { 
+  WardrobeLogo,
   CrewNeckIcon, 
   HalfSleeveIcon, 
   FullSleeveIcon, 
@@ -123,6 +124,7 @@ export default function App() {
   const [packingPieceId, setPackingPieceId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'piece' | 'event', id: string } | null>(null);
   const [confirmImport, setConfirmImport] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [showAddOutfit, setShowAddOutfit] = useState(false);
 
   // Save data
@@ -153,6 +155,11 @@ export default function App() {
       };
       reader.readAsText(file);
     }
+  };
+
+  const handleReset = () => {
+    storageService.clearAllData();
+    window.location.reload();
   };
 
   const executeImport = () => {
@@ -288,7 +295,7 @@ export default function App() {
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#E5E5E5] px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-[#1A1A1A] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
-            <Shirt size={18} className="text-white" />
+            <WardrobeLogo size={18} className="text-white" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight italic serif">Digital Wardrobe</h1>
         </div>
@@ -360,6 +367,7 @@ export default function App() {
               lastExported={lastExported}
               onExport={handleExport}
               onImport={handleImport}
+              onReset={() => setConfirmReset(true)}
             />
           )}
         </AnimatePresence>
@@ -450,6 +458,40 @@ export default function App() {
                 </button>
                 <button 
                   onClick={() => setConfirmImport(null)}
+                  className="w-full py-4 text-[#A1A1A1] font-bold uppercase tracking-widest hover:text-[#1A1A1A] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {confirmReset && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-[40px] p-10 w-full max-w-md shadow-2xl space-y-8 text-center"
+            >
+              <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-500">
+                <RotateCcw size={40} />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold">Clear All Data?</h3>
+                <p className="text-sm text-[#A1A1A1] leading-relaxed">
+                  This will delete all your custom pieces, outfits, and events, and restore the app to its initial state.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={handleReset}
+                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold uppercase tracking-widest hover:bg-red-600 transition-colors"
+                >
+                  Yes, Clear Everything
+                </button>
+                <button 
+                  onClick={() => setConfirmReset(false)}
                   className="w-full py-4 text-[#A1A1A1] font-bold uppercase tracking-widest hover:text-[#1A1A1A] transition-colors"
                 >
                   Cancel
@@ -1366,7 +1408,7 @@ function EventsView({
   );
 }
 
-function SettingsView({ lastExported, onExport, onImport }: { lastExported: number | null, onExport: () => void, onImport: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+function SettingsView({ lastExported, onExport, onImport, onReset }: { lastExported: number | null, onExport: () => void, onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, onReset: () => void }) {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -1420,6 +1462,24 @@ function SettingsView({ lastExported, onExport, onImport }: { lastExported: numb
             <p className="text-sm font-bold text-orange-900">Warning</p>
             <p className="text-xs text-orange-700 leading-relaxed">Importing data will completely overwrite your current wardrobe, outfits, and events. This action cannot be undone.</p>
           </div>
+        </div>
+
+        <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6 space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
+              <RotateCcw size={24} />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-red-600">Reset Application</h3>
+              <p className="text-xs text-[#A1A1A1]">Clear all local data and restore to initial settings.</p>
+            </div>
+          </div>
+          <button 
+            onClick={onReset}
+            className="w-full py-4 border-2 border-red-100 text-red-500 rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-red-50 transition-colors"
+          >
+            Clear Cache & Reset
+          </button>
         </div>
       </div>
 

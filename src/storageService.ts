@@ -127,5 +127,9 @@ export const storageService = {
 
   saveEvents: (events: Event[]) => {
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+  },
+
+  clearAllData: () => {
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
   }
 };
