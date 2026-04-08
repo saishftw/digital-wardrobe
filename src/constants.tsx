@@ -116,12 +116,12 @@ export const INITIAL_OUTFITS: Outfit[] = [
 ];
 
 export const WardrobeLogo = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M12 7V4a2 2 0 1 1 4 0" />
-    <path d="M2 13c0-2.5 3-5 10-5s10 2.5 10 5" />
-    <path d="M2 13h20" />
-    <path d="M18 4.5l1 1-1 1-1-1z" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="13" r="0.75" fill="currentColor" stroke="none" />
+  <svg width={size} height={size} viewBox="-100 -100 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <path d="M0,-30 L0,-52 C0,-64 10,-72 20,-68 C30,-64 34,-54 28,-46" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M0,-30 L-62,30 L62,30 Z" stroke="currentColor" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+    <g transform="translate(52, 44)">
+      <path d="M0,0 L0,28 L7,21 L13,34 L17,32 L11,19 L20,19 Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </g>
   </svg>
 );
 
