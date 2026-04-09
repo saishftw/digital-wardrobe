@@ -1,5 +1,5 @@
 import { Piece, Outfit, Event } from './types';
-import { INITIAL_PIECES, INITIAL_OUTFITS } from './constants';
+import { INITIAL_PIECES, INITIAL_OUTFITS, SOURCE_OF_TRUTH_PIECES, SOURCE_OF_TRUTH_OUTFITS } from './constants';
 import { db, auth } from './firebase';
 import { 
   doc, 
@@ -281,6 +281,43 @@ export const storageService = {
     if (events.length > 0) localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
 
     return { pieces, outfits, events };
+  },
+
+  initializeWithSourceOfTruth: async () => {
+    if (!auth.currentUser) return;
+    
+    // Only initialize if cloud is empty
+    const piecesSnap = await getDocs(collection(db, `users/${auth.currentUser.uid}/pieces`));
+    if (!piecesSnap.empty) return;
+
+    console.log('Initializing cloud with source of truth data...');
+    const userId = auth.currentUser.uid;
+    const batch = writeBatch(db);
+
+    SOURCE_OF_TRUTH_PIECES.forEach(p => batch.set(doc(db, `users/${userId}/pieces`, p.id), p));
+    SOURCE_OF_TRUTH_OUTFITS.forEach(o => batch.set(doc(db, `users/${userId}/outfits`, o.id), o));
+    
+    // Add Japan Trip event by default
+    const japanTrip: Event = { 
+      id: 'e1', 
+      name: 'Japan Trip', 
+      startDate: '2026-04-11', 
+      endDate: '2026-04-25', 
+      packedPieceIds: [], 
+      dayAssignments: Array.from({ length: 15 }, (_, i) => ({
+        date: `2026-04-${11 + i}`
+      }))
+    };
+    batch.set(doc(db, `users/${userId}/events`, japanTrip.id), japanTrip);
+
+    await batch.commit();
+    
+    // Also update local storage so UI updates immediately
+    localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(SOURCE_OF_TRUTH_PIECES));
+    localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(SOURCE_OF_TRUTH_OUTFITS));
+    localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify([japanTrip]));
+    
+    return { pieces: SOURCE_OF_TRUTH_PIECES, outfits: SOURCE_OF_TRUTH_OUTFITS, events: [japanTrip] };
   },
 
   subscribeToCloud: (

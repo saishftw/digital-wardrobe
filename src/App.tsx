@@ -155,7 +155,13 @@ export default function App() {
         // Initial sync from cloud on login
         setIsSyncing(true);
         try {
-          const cloudData = await storageService.syncFromCloud();
+          let cloudData = await storageService.syncFromCloud();
+          
+          // If cloud is empty, initialize with source of truth
+          if (!cloudData || (cloudData.pieces.length === 0 && cloudData.outfits.length === 0)) {
+            cloudData = await storageService.initializeWithSourceOfTruth();
+          }
+
           if (cloudData) {
             setPieces(cloudData.pieces);
             setOutfits(cloudData.outfits);
@@ -176,6 +182,10 @@ export default function App() {
           setIsSyncing(false);
         }
       } else {
+        // Empty until signin
+        setPieces([]);
+        setOutfits([]);
+        setEvents([]);
         if (unsubscribeCloud) {
           unsubscribeCloud();
           unsubscribeCloud = null;
@@ -191,12 +201,6 @@ export default function App() {
   const handleLogin = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-      // syncToCloud will be triggered by the storageService calls if we were to save something, 
-      // but let's explicitly sync local to cloud on first login if cloud is empty
-      const cloudData = await storageService.syncFromCloud();
-      if (!cloudData || (cloudData.pieces.length === 0 && pieces.length > 0)) {
-        await storageService.syncToCloud();
-      }
     } catch (err) {
       console.error('Login error:', err);
       setSyncError('Login failed');
