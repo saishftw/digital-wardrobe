@@ -136,6 +136,7 @@ export default function App() {
   const [viewingOutfit, setViewingOutfit] = useState<Outfit | null>(null);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [selectedPieceId2, setSelectedPieceId2] = useState<string | null>(null); // Multi-piece selection
+  const [selectedPieceId3, setSelectedPieceId3] = useState<string | null>(null); // Layering
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [packingPieceId, setPackingPieceId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'piece' | 'event', id: string } | null>(null);
@@ -248,6 +249,25 @@ export default function App() {
   const handleReset = () => {
     storageService.clearAllData();
     window.location.reload();
+  };
+
+  const handleResetToSourceOfTruth = async () => {
+    if (confirm('This will replace all your current wardrobe data with the original Source of Truth from your Excel file. Continue?')) {
+      setIsSyncing(true);
+      try {
+        const data = await storageService.initializeWithSourceOfTruth(true);
+        if (data) {
+          setPieces(data.pieces);
+          setOutfits(data.outfits);
+          setEvents(data.events);
+        }
+      } catch (err) {
+        console.error('Reset error:', err);
+        setSyncError('Failed to reset to source of truth');
+      } finally {
+        setIsSyncing(false);
+      }
+    }
   };
 
   const executeImport = () => {
@@ -414,7 +434,16 @@ export default function App() {
       if (e.id === eventId) {
         return {
           ...e,
-          dayAssignments: e.dayAssignments.map(da => da.date === date ? { ...da, outfitId } : da)
+          dayAssignments: e.dayAssignments.map(da => {
+            if (da.date === date) {
+              if (outfitId === undefined) {
+                const { outfitId: _, ...rest } = da;
+                return rest;
+              }
+              return { ...da, outfitId };
+            }
+            return da;
+          })
         };
       }
       return e;
@@ -488,10 +517,12 @@ export default function App() {
               outfits={outfits}
               selectedPieceId={selectedPieceId}
               selectedPieceId2={selectedPieceId2}
+              selectedPieceId3={selectedPieceId3}
               onSelectPiece={setSelectedPieceId}
               onSelectPiece2={setSelectedPieceId2}
+              onSelectPiece3={setSelectedPieceId3}
               onViewOutfit={setViewingOutfit}
-              onAddOutfit={addOutfit}
+              onAddOutfit={() => setShowAddOutfit(true)}
             />
           )}
           {view === 'Events' && (
@@ -512,6 +543,18 @@ export default function App() {
               onExport={handleExport}
               onImport={handleImport}
               onReset={() => setConfirmReset(true)}
+              onResetToSourceOfTruth={handleResetToSourceOfTruth}
+              onSyncNow={async () => {
+                setIsSyncing(true);
+                try {
+                  await storageService.syncToCloud();
+                } catch (err) {
+                  console.error('Sync error:', err);
+                  setSyncError('Manual sync failed');
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
             />
           )}
         </AnimatePresence>
@@ -561,10 +604,23 @@ export default function App() {
         )}
         {showAddOutfit && selectedPieceId && selectedPieceId2 && (
           <AddOutfitModal 
-            topId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Top' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Top' ? selectedPieceId : selectedPieceId2) : ''}
-            bottomId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Bottom' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Bottom' ? selectedPieceId : selectedPieceId2) : ''}
-            outerId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Outer' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Outer' ? selectedPieceId : selectedPieceId2) : ''}
-            accessoryId={pieces.find(p => p.id === selectedPieceId || p.id === selectedPieceId2)?.type === 'Accessory' ? (pieces.find(p => p.id === selectedPieceId)?.type === 'Accessory' ? selectedPieceId : selectedPieceId2) : ''}
+            {...(() => {
+              const selectedIds = [selectedPieceId, selectedPieceId2, selectedPieceId3].filter(Boolean) as string[];
+              const selectedPieces = selectedIds.map(id => pieces.find(p => p.id === id)!);
+              
+              const top = selectedPieces.find(p => p.type === 'Top');
+              const bottom = selectedPieces.find(p => p.type === 'Bottom');
+              const outers = selectedPieces.filter(p => p.type === 'Outer' || p.category === 'Jacket' || p.category === 'Coat');
+              const accessory = selectedPieces.find(p => p.type === 'Accessory');
+              
+              return {
+                topId: top?.id || '',
+                bottomId: bottom?.id || '',
+                midLayerId: outers.length > 1 ? outers[0].id : '',
+                outerId: outers.length > 1 ? outers[1].id : (outers[0]?.id || ''),
+                accessoryId: accessory?.id || ''
+              };
+            })()}
             onClose={() => setShowAddOutfit(false)}
             onSave={(o) => {
               addOutfit(o);
@@ -736,8 +792,16 @@ function WardrobeView({ pieces, onViewPiece, onPackPiece, onToggleStatus }: { pi
             placeholder="Search wardrobe..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-[#E5E5E5] rounded-2xl py-3 pl-10 pr-4 text-sm outline-none focus:border-[#1A1A1A] transition-colors"
+            className="w-full bg-white border border-[#E5E5E5] rounded-2xl py-3 pl-10 pr-10 text-sm outline-none focus:border-[#1A1A1A] transition-colors"
           />
+          {search && (
+            <button 
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#A1A1A1] hover:text-[#1A1A1A] transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
@@ -855,8 +919,11 @@ function OutfitsView({ outfits, pieces, onViewOutfit, onAddOutfit }: { outfits: 
       result = result.filter(o => {
         const top = pieces.find(p => p.id === o.topId);
         const bottom = pieces.find(p => p.id === o.bottomId);
+        const mid = o.midLayerId ? pieces.find(p => p.id === o.midLayerId) : null;
         const outer = o.outerId ? pieces.find(p => p.id === o.outerId) : null;
-        return top?.status === 'Owned' && bottom?.status === 'Owned' && (!outer || outer.status === 'Owned');
+        return top?.status === 'Owned' && bottom?.status === 'Owned' && 
+               (!mid || mid.status === 'Owned') && 
+               (!outer || outer.status === 'Owned');
       });
     }
 
@@ -930,10 +997,11 @@ function OutfitsView({ outfits, pieces, onViewOutfit, onAddOutfit }: { outfits: 
         {filteredOutfits.map((outfit) => {
           const top = getPiece(outfit.topId);
           const bottom = getPiece(outfit.bottomId);
+          const mid = outfit.midLayerId ? getPiece(outfit.midLayerId) : null;
           const outer = outfit.outerId ? getPiece(outfit.outerId) : null;
           const accessory = outfit.accessoryId ? getPiece(outfit.accessoryId) : null;
 
-          const missingCount = [top, bottom, outer, accessory].filter(p => p && p.status === 'Wishlist').length;
+          const missingCount = [top, bottom, mid, outer, accessory].filter(p => p && p.status === 'Wishlist').length;
 
           return (
             <div 
@@ -965,8 +1033,11 @@ function OutfitsView({ outfits, pieces, onViewOutfit, onAddOutfit }: { outfits: 
                 <div className="flex -space-x-4">
                   <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform" />
                   <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-75" />
+                  {mid && (
+                    <PieceIcon category={mid?.category || 'Other'} color={mid?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-100" />
+                  )}
                   {outer && (
-                    <PieceIcon category={outer?.category || 'Other'} color={outer?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-100" />
+                    <PieceIcon category={outer?.category || 'Other'} color={outer?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-125" />
                   )}
                   {accessory && (
                     <PieceIcon category={accessory?.category || 'Other'} color={accessory?.hex} size={14} className="border-4 border-white shadow-md group-hover:scale-105 transition-transform delay-150" />
@@ -974,7 +1045,7 @@ function OutfitsView({ outfits, pieces, onViewOutfit, onAddOutfit }: { outfits: 
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium leading-snug mb-2">
-                    {top?.title} + {bottom?.title} {outer ? `+ ${outer.title}` : ''} {accessory ? `+ ${accessory.title}` : ''}
+                    {top?.title} + {bottom?.title} {mid ? `+ ${mid.title}` : ''} {outer ? `+ ${outer.title}` : ''} {accessory ? `+ ${accessory.title}` : ''}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {outfit.occasion?.map(occ => (
@@ -1007,9 +1078,29 @@ function OutfitsView({ outfits, pieces, onViewOutfit, onAddOutfit }: { outfits: 
       )}
     </motion.div>
   );
-}
-
-function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSelectPiece, onSelectPiece2, onViewOutfit, onAddOutfit }: { pieces: Piece[], outfits: Outfit[], selectedPieceId: string | null, selectedPieceId2: string | null, onSelectPiece: (id: string | null) => void, onSelectPiece2: (id: string | null) => void, onViewOutfit: (o: Outfit) => void, onAddOutfit: (o: Omit<Outfit, 'id'>) => void }) {
+}function BuilderView({ 
+  pieces, 
+  outfits, 
+  selectedPieceId, 
+  selectedPieceId2, 
+  selectedPieceId3,
+  onSelectPiece, 
+  onSelectPiece2, 
+  onSelectPiece3,
+  onViewOutfit, 
+  onAddOutfit 
+}: { 
+  pieces: Piece[], 
+  outfits: Outfit[], 
+  selectedPieceId: string | null, 
+  selectedPieceId2: string | null, 
+  selectedPieceId3: string | null,
+  onSelectPiece: (id: string | null) => void, 
+  onSelectPiece2: (id: string | null) => void, 
+  onSelectPiece3: (id: string | null) => void,
+  onViewOutfit: (o: Outfit) => void, 
+  onAddOutfit: () => void 
+}) {
   const [search, setSearch] = useState('');
   const [weatherFilter, setWeatherFilter] = useState<Weather | 'All'>('All');
   const [occasionFilter, setOccasionFilter] = useState<string | 'All'>('All');
@@ -1027,82 +1118,71 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
   }, [pieces, search]);
 
   const compatibleOutfits = useMemo(() => {
-    if (!selectedPieceId && !selectedPieceId2) return [];
+    if (!selectedPieceId && !selectedPieceId2 && !selectedPieceId3) return [];
     return outfits.filter(o => {
-      const matches1 = !selectedPieceId || o.topId === selectedPieceId || o.bottomId === selectedPieceId || o.outerId === selectedPieceId;
-      const matches2 = !selectedPieceId2 || o.topId === selectedPieceId2 || o.bottomId === selectedPieceId2 || o.outerId === selectedPieceId2;
+      const selectedIds = [selectedPieceId, selectedPieceId2, selectedPieceId3].filter(Boolean);
+      const outfitIds = [o.topId, o.bottomId, o.midLayerId, o.outerId, o.accessoryId].filter(Boolean);
+      
+      const matchesAllSelected = selectedIds.every(id => outfitIds.includes(id!));
       const matchesWeather = weatherFilter === 'All' || o.weather === weatherFilter;
       const matchesOccasion = occasionFilter === 'All' || o.occasion.includes(occasionFilter);
-      return matches1 && matches2 && matchesWeather && matchesOccasion;
+      
+      return matchesAllSelected && matchesWeather && matchesOccasion;
     });
-  }, [outfits, selectedPieceId, selectedPieceId2, weatherFilter, occasionFilter]);
+  }, [outfits, selectedPieceId, selectedPieceId2, selectedPieceId3, weatherFilter, occasionFilter]);
 
   const handleFeelingLucky = () => {
     const ownedOutfits = outfits.filter(o => {
       const top = pieces.find(p => p.id === o.topId);
       const bottom = pieces.find(p => p.id === o.bottomId);
+      const mid = o.midLayerId ? pieces.find(p => p.id === o.midLayerId) : true;
       const outer = o.outerId ? pieces.find(p => p.id === o.outerId) : true;
-      return top?.status === 'Owned' && bottom?.status === 'Owned' && (outer === true || (outer && outer.status === 'Owned'));
+      return top?.status === 'Owned' && bottom?.status === 'Owned' && 
+             (mid === true || (mid && mid.status === 'Owned')) &&
+             (outer === true || (outer && outer.status === 'Owned'));
     });
 
     if (ownedOutfits.length > 0) {
       const randomOutfit = ownedOutfits[Math.floor(Math.random() * ownedOutfits.length)];
       onViewOutfit(randomOutfit);
     } else {
-      // Fallback to random piece if no outfits exist
       const ownedPieces = pieces.filter(p => p.status === 'Owned');
       if (ownedPieces.length > 0) {
         const randomPiece = ownedPieces[Math.floor(Math.random() * ownedPieces.length)];
         onSelectPiece(randomPiece.id);
         onSelectPiece2(null);
+        onSelectPiece3(null);
       }
     }
   };
 
   const getPiece = (id: string) => pieces.find(p => p.id === id);
 
-  const isCompatible = (piece: Piece, otherId: string | null) => {
-    if (!otherId) return true;
-    const other = pieces.find(p => p.id === otherId);
-    if (!other) return true;
-
+  const isCompatible = (piece: Piece, otherIds: (string | null)[]) => {
+    const others = otherIds.filter(Boolean).map(id => pieces.find(p => p.id === id)).filter(Boolean) as Piece[];
+    
     // Rule: Cannot have two bottoms
-    if (piece.type === 'Bottom' && other.type === 'Bottom') return false;
-
-    // Rule: Cannot have two "Tees" (Crew-neck)
-    if (piece.category === 'Crew-neck' && other.category === 'Crew-neck') return false;
+    if (piece.type === 'Bottom' && others.some(o => o.type === 'Bottom')) return false;
 
     // Rule: Cannot have two "Shoes"
-    if (piece.type === 'Shoes' && other.type === 'Shoes') return false;
+    if (piece.type === 'Shoes' && others.some(o => o.type === 'Shoes')) return false;
+
+    // Rule: Max 2 outers/mid-layers (Total 3 pieces including top/bottom)
+    const layers = others.filter(o => o.type === 'Outer' || o.category === 'Jacket' || o.category === 'Coat');
+    if ((piece.type === 'Outer' || piece.category === 'Jacket' || piece.category === 'Coat') && layers.length >= 2) return false;
 
     return true;
   };
 
   const currentOutfitExists = useMemo(() => {
     if (!selectedPieceId || !selectedPieceId2) return false;
-    return outfits.some(o => 
-      (o.topId === selectedPieceId && o.bottomId === selectedPieceId2) ||
-      (o.topId === selectedPieceId2 && o.bottomId === selectedPieceId)
-    );
-  }, [outfits, selectedPieceId, selectedPieceId2]);
-
-  const handleSaveOutfit = () => {
-    if (!selectedPieceId || !selectedPieceId2) return;
-    const p1 = getPiece(selectedPieceId);
-    const p2 = getPiece(selectedPieceId2);
-    if (!p1 || !p2) return;
-
-    const top = p1.type === 'Top' ? p1 : p2;
-    const bottom = p1.type === 'Bottom' ? p1 : p2;
-
-    onAddOutfit({
-      topId: top.id,
-      bottomId: bottom.id,
-      rating: 0,
-      occasion: ['Casual'],
-      weather: 'Cool'
+    const selectedIds = [selectedPieceId, selectedPieceId2, selectedPieceId3].filter(Boolean).sort();
+    
+    return outfits.some(o => {
+      const outfitIds = [o.topId, o.bottomId, o.midLayerId, o.outerId, o.accessoryId].filter(Boolean).sort();
+      return JSON.stringify(selectedIds) === JSON.stringify(outfitIds);
     });
-  };
+  }, [outfits, selectedPieceId, selectedPieceId2, selectedPieceId3]);
 
   return (
     <motion.div 
@@ -1126,51 +1206,35 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Primary Piece</span>
-            <div className="aspect-square bg-white border-2 border-dashed border-[#E5E5E5] rounded-[40px] flex flex-col items-center justify-center p-4 text-center relative overflow-hidden group">
-              {selectedPieceId ? (
-                <>
-                  <PieceIcon category={getPiece(selectedPieceId)?.category || 'Other'} color={getPiece(selectedPieceId)?.hex} size={32} />
-                  <p className="mt-4 text-xs font-bold line-clamp-1 px-2">{getPiece(selectedPieceId)?.title}</p>
-                  <button 
-                    onClick={() => onSelectPiece(null)}
-                    className="absolute top-2 right-2 p-1 bg-white/80 backdrop-blur rounded-full shadow-sm transition-opacity"
-                  >
-                    <X size={14} />
-                  </button>
-                </>
-              ) : (
-                <div className="text-[#A1A1A1] space-y-2">
-                  <Plus size={24} className="mx-auto opacity-50" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider">Select Piece</p>
-                </div>
-              )}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { id: selectedPieceId, onSelect: onSelectPiece, label: 'Primary' },
+            { id: selectedPieceId2, onSelect: onSelectPiece2, label: 'Secondary' },
+            { id: selectedPieceId3, onSelect: onSelectPiece3, label: 'Layer' }
+          ].map((slot, i) => (
+            <div key={i} className="space-y-2">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-[#A1A1A1]">{slot.label}</span>
+              <div className="aspect-square bg-white border-2 border-dashed border-[#E5E5E5] rounded-[32px] flex flex-col items-center justify-center p-3 text-center relative overflow-hidden group">
+                {slot.id ? (
+                  <>
+                    <PieceIcon category={getPiece(slot.id)?.category || 'Other'} color={getPiece(slot.id)?.hex} size={24} />
+                    <p className="mt-3 text-[9px] font-bold line-clamp-1 px-1">{getPiece(slot.id)?.title}</p>
+                    <button 
+                      onClick={() => slot.onSelect(null)}
+                      className="absolute top-1.5 right-1.5 p-1 bg-white/80 backdrop-blur rounded-full shadow-sm transition-opacity"
+                    >
+                      <X size={12} />
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-[#A1A1A1] space-y-1">
+                    <Plus size={20} className="mx-auto opacity-50" />
+                    <p className="text-[8px] font-bold uppercase tracking-wider">Select</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Secondary (Optional)</span>
-            <div className="aspect-square bg-white border-2 border-dashed border-[#E5E5E5] rounded-[40px] flex flex-col items-center justify-center p-4 text-center relative overflow-hidden group">
-              {selectedPieceId2 ? (
-                <>
-                  <PieceIcon category={getPiece(selectedPieceId2)?.category || 'Other'} color={getPiece(selectedPieceId2)?.hex} size={32} />
-                  <p className="mt-4 text-xs font-bold line-clamp-1 px-2">{getPiece(selectedPieceId2)?.title}</p>
-                  <button 
-                    onClick={() => onSelectPiece2(null)}
-                    className="absolute top-2 right-2 p-1 bg-white/80 backdrop-blur rounded-full shadow-sm transition-opacity"
-                  >
-                    <X size={14} />
-                  </button>
-                </>
-              ) : (
-                <div className="text-[#A1A1A1] space-y-2">
-                  <Plus size={24} className="mx-auto opacity-50" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider">Select Piece</p>
-                </div>
-              )}
-            </div>
-          </div>
+          ))}
         </div>
 
         {selectedPieceId && selectedPieceId2 && !currentOutfitExists && (
@@ -1180,7 +1244,7 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
             className="pt-2"
           >
             <button 
-              onClick={handleSaveOutfit}
+              onClick={onAddOutfit}
               className="w-full py-4 bg-[#1A1A1A] text-white rounded-3xl text-sm font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2"
             >
               <Sparkles size={18} />
@@ -1197,15 +1261,24 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
               placeholder="Search your closet..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-[#E5E5E5] rounded-2xl py-3 pl-10 pr-4 text-sm outline-none focus:border-[#1A1A1A] transition-colors"
+              className="w-full bg-white border border-[#E5E5E5] rounded-2xl py-3 pl-10 pr-10 text-sm outline-none focus:border-[#1A1A1A] transition-colors"
             />
+            {search && (
+              <button 
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#A1A1A1] hover:text-[#1A1A1A] transition-colors"
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
           <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
             {filteredPieces.map(piece => {
-              const isSelected = selectedPieceId === piece.id || selectedPieceId2 === piece.id;
+              const isSelected = selectedPieceId === piece.id || selectedPieceId2 === piece.id || selectedPieceId3 === piece.id;
               const canSelect = isSelected || 
-                                (!selectedPieceId && isCompatible(piece, selectedPieceId2)) || 
-                                (!selectedPieceId2 && isCompatible(piece, selectedPieceId));
+                                (!selectedPieceId && isCompatible(piece, [selectedPieceId2, selectedPieceId3])) || 
+                                (!selectedPieceId2 && isCompatible(piece, [selectedPieceId, selectedPieceId3])) ||
+                                (!selectedPieceId3 && isCompatible(piece, [selectedPieceId, selectedPieceId2]));
               
               return (
                 <button
@@ -1214,8 +1287,10 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
                   onClick={() => {
                     if (selectedPieceId === piece.id) onSelectPiece(null);
                     else if (selectedPieceId2 === piece.id) onSelectPiece2(null);
-                    else if (!selectedPieceId && isCompatible(piece, selectedPieceId2)) onSelectPiece(piece.id);
-                    else if (!selectedPieceId2 && isCompatible(piece, selectedPieceId)) onSelectPiece2(piece.id);
+                    else if (selectedPieceId3 === piece.id) onSelectPiece3(null);
+                    else if (!selectedPieceId && isCompatible(piece, [selectedPieceId2, selectedPieceId3])) onSelectPiece(piece.id);
+                    else if (!selectedPieceId2 && isCompatible(piece, [selectedPieceId, selectedPieceId3])) onSelectPiece2(piece.id);
+                    else if (!selectedPieceId3 && isCompatible(piece, [selectedPieceId, selectedPieceId2])) onSelectPiece3(piece.id);
                   }}
                   className={`flex-shrink-0 w-28 space-y-3 text-center transition-all ${
                     isSelected ? 'scale-105' : canSelect ? 'opacity-100 hover:opacity-80' : 'opacity-20 grayscale cursor-not-allowed'
@@ -1566,15 +1641,21 @@ function EventDetailView({
                             <div className="flex -space-x-2">
                               <PieceIcon category={pieces.find(p => p.id === outfit.topId)?.category || 'Other'} color={pieces.find(p => p.id === outfit.topId)?.hex} size={6} />
                               <PieceIcon category={pieces.find(p => p.id === outfit.bottomId)?.category || 'Other'} color={pieces.find(p => p.id === outfit.bottomId)?.hex} size={6} />
+                              {outfit.midLayerId && <PieceIcon category={pieces.find(p => p.id === outfit.midLayerId)?.category || 'Other'} color={pieces.find(p => p.id === outfit.midLayerId)?.hex} size={6} />}
+                              {outfit.outerId && <PieceIcon category={pieces.find(p => p.id === outfit.outerId)?.category || 'Other'} color={pieces.find(p => p.id === outfit.outerId)?.hex} size={6} />}
                             </div>
                             <div>
-                              <p className="text-sm font-bold">{pieces.find(p => p.id === outfit.topId)?.title} + {pieces.find(p => p.id === outfit.bottomId)?.title}</p>
+                              <p className="text-sm font-bold">
+                                {pieces.find(p => p.id === outfit.topId)?.title} + {pieces.find(p => p.id === outfit.bottomId)?.title}
+                                {outfit.midLayerId ? ` + ${pieces.find(p => p.id === outfit.midLayerId)?.title}` : ''}
+                                {outfit.outerId ? ` + ${pieces.find(p => p.id === outfit.outerId)?.title}` : ''}
+                              </p>
                               <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion?.join(', ')}</p>
                             </div>
                           </div>
                           <button 
                             onClick={() => onUpdateAssignment(event.id, day.date, undefined)}
-                            className="p-2 text-[#A1A1A1] hover:text-red-500 opacity-0 group-hover/outfit:opacity-100 transition-all"
+                            className="p-2 text-[#A1A1A1] hover:text-red-500 transition-all"
                           >
                             <X size={16} />
                           </button>
@@ -1927,7 +2008,9 @@ function SettingsView({
   onLogout, 
   onExport, 
   onImport, 
-  onReset 
+  onReset,
+  onResetToSourceOfTruth,
+  onSyncNow
 }: { 
   lastExported: number | null, 
   user: User | null,
@@ -1936,8 +2019,13 @@ function SettingsView({
   onLogout: () => void,
   onExport: () => void, 
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, 
-  onReset: () => void 
+  onReset: () => void,
+  onResetToSourceOfTruth: () => void,
+  onSyncNow: () => void
 }) {
+  const [showDebug, setShowDebug] = useState(false);
+  const dbId = "ai-studio-e0594e10-7a1b-4dee-b19f-a001a0aab789";
+  const projectId = "gen-lang-client-0552545932";
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -1997,6 +2085,44 @@ function SettingsView({
                 Automatic Sync Enabled
                 {isSyncing && <RefreshCw size={12} className="animate-spin ml-auto" />}
               </div>
+
+              <button 
+                onClick={onSyncNow}
+                disabled={isSyncing}
+                className="w-full flex items-center justify-center gap-2 py-3 border border-emerald-200 text-emerald-700 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-100 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+                Sync Now
+              </button>
+
+              <div className="pt-2">
+                <button 
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1] hover:text-[#1A1A1A] transition-colors flex items-center gap-1"
+                >
+                  <Info size={12} />
+                  {showDebug ? 'Hide' : 'Show'} Database Info
+                </button>
+                {showDebug && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="mt-3 p-4 bg-gray-50 rounded-2xl space-y-2 overflow-hidden"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold uppercase text-[#A1A1A1]">Project ID</p>
+                      <p className="text-xs font-mono break-all">{projectId}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-bold uppercase text-[#A1A1A1]">Database ID</p>
+                      <p className="text-xs font-mono break-all">{dbId}</p>
+                    </div>
+                    <p className="text-[9px] text-[#A1A1A1] italic">
+                      Note: In Firebase Console, ensure you select the database ID above from the dropdown.
+                    </p>
+                  </motion.div>
+                )}
+              </div>
             </div>
           ) : (
             <button 
@@ -2015,30 +2141,42 @@ function SettingsView({
               <Database size={24} />
             </div>
             <div className="flex-1">
-              <h3 className="font-bold">Data Portability</h3>
-              <p className="text-xs text-[#A1A1A1]">Export your wardrobe to another device or import existing data.</p>
+              <h3 className="font-bold">Data Management</h3>
+              <p className="text-xs text-[#A1A1A1]">Reset or restore your wardrobe data.</p>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
-              <span>Last Exported</span>
-              <span>{lastExported ? new Date(lastExported).toLocaleString() : 'Never'}</span>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3">
+              <button 
+                onClick={onResetToSourceOfTruth}
+                className="flex items-center justify-center gap-2 py-4 border border-[#1A1A1A] text-[#1A1A1A] rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors"
+              >
+                <Sparkles size={16} />
+                Reset to Source of Truth
+              </button>
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
-              <button 
-                onClick={onExport}
-                className="flex items-center justify-center gap-2 py-4 bg-[#1A1A1A] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors"
-              >
-                <Download size={16} />
-                Export JSON
-              </button>
-              <label className="flex items-center justify-center gap-2 py-4 bg-white border border-[#E5E5E5] text-[#1A1A1A] rounded-2xl text-xs font-bold uppercase tracking-widest hover:border-[#1A1A1A] cursor-pointer transition-all">
-                <Upload size={16} />
-                Import JSON
-                <input type="file" accept=".json" onChange={onImport} className="hidden" />
-              </label>
+            <div className="space-y-3 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+                <span>Backup & Restore</span>
+                <span>{lastExported ? new Date(lastExported).toLocaleString() : 'Never'}</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={onExport}
+                  className="flex items-center justify-center gap-2 py-4 bg-[#1A1A1A] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors"
+                >
+                  <Download size={16} />
+                  Export JSON
+                </button>
+                <label className="flex items-center justify-center gap-2 py-4 bg-white border border-[#E5E5E5] text-[#1A1A1A] rounded-2xl text-xs font-bold uppercase tracking-widest hover:border-[#1A1A1A] cursor-pointer transition-all">
+                  <Upload size={16} />
+                  Import JSON
+                  <input type="file" accept=".json" onChange={onImport} className="hidden" />
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -2287,12 +2425,13 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
   const getPiece = (id: string) => pieces.find(p => p.id === id);
   const top = getPiece(outfit.topId);
   const bottom = getPiece(outfit.bottomId);
+  const mid = outfit.midLayerId ? getPiece(outfit.midLayerId) : null;
   const outer = outfit.outerId ? getPiece(outfit.outerId) : null;
   const accessory = outfit.accessoryId ? getPiece(outfit.accessoryId) : null;
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notes, setNotes] = useState(outfit.notes || '');
 
-  const outfitTitle = `${top?.title || 'Top'} + ${bottom?.title || 'Bottom'}${outer ? ` + ${outer.title}` : ''}${accessory ? ` + ${accessory.title}` : ''}`;
+  const outfitTitle = `${top?.title || 'Top'} + ${bottom?.title || 'Bottom'}${mid ? ` + ${mid.title}` : ''}${outer ? ` + ${outer.title}` : ''}${accessory ? ` + ${accessory.title}` : ''}`;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4">
@@ -2331,6 +2470,11 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
               <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-50 shadow-lg flex items-center justify-center overflow-hidden">
                 <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={12} />
               </div>
+              {mid && (
+                <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-50 shadow-lg flex items-center justify-center overflow-hidden">
+                  <PieceIcon category={mid?.category || 'Other'} color={mid?.hex} size={12} />
+                </div>
+              )}
               {outer && (
                 <div className="w-24 h-24 rounded-full border-4 border-white bg-gray-50 shadow-lg flex items-center justify-center overflow-hidden">
                   <PieceIcon category={outer?.category || 'Other'} color={outer?.hex} size={12} />
@@ -2418,7 +2562,7 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
   );
 }
 
-function AddOutfitModal({ topId, bottomId, outerId, accessoryId, onClose, onSave }: { topId: string, bottomId: string, outerId: string, accessoryId: string, onClose: () => void, onSave: (o: Omit<Outfit, 'id'>) => void }) {
+function AddOutfitModal({ topId, bottomId, midLayerId, outerId, accessoryId, onClose, onSave }: { topId: string, bottomId: string, midLayerId: string, outerId: string, accessoryId: string, onClose: () => void, onSave: (o: Omit<Outfit, 'id'>) => void }) {
   const [weather, setWeather] = useState<Weather>('Cool');
   const [rating, setRating] = useState(7);
   const [occasions, setOccasions] = useState<string[]>(['Casual']);
@@ -2521,7 +2665,7 @@ function AddOutfitModal({ topId, bottomId, outerId, accessoryId, onClose, onSave
         </div>
 
         <button 
-          onClick={() => onSave({ topId, bottomId, outerId, accessoryId, weather, occasion: occasions, rating, notes })}
+          onClick={() => onSave({ topId, bottomId, midLayerId, outerId, accessoryId, weather, occasion: occasions, rating, notes })}
           className="w-full bg-[#1A1A1A] text-white py-4 rounded-2xl font-bold uppercase tracking-widest hover:bg-black transition-colors"
         >
           Save Outfit

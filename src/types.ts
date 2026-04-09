@@ -20,6 +20,7 @@ export interface Outfit {
   id: string;
   bottomId: string;
   topId: string;
+  midLayerId?: string;
   outerId?: string;
   accessoryId?: string;
   rating: number;

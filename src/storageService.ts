@@ -20,6 +20,21 @@ const STORAGE_KEYS = {
   SYNC_STATUS: 'wardrobe_sync_status',
 };
 
+const sanitize = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj.map(sanitize);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.entries(obj).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = sanitize(value);
+      }
+      return acc;
+    }, {} as any);
+  }
+  return obj;
+};
+
 export const storageService = {
   getLastExported: (): number | null => {
     const stored = localStorage.getItem(STORAGE_KEYS.LAST_EXPORTED);
@@ -112,7 +127,7 @@ export const storageService = {
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
       pieces.forEach(piece => {
-        setDoc(doc(db, `users/${userId}/pieces`, piece.id), piece).catch(err => {
+        setDoc(doc(db, `users/${userId}/pieces`, piece.id), sanitize(piece)).catch(err => {
           console.error('Cloud sync error (piece):', err);
         });
       });
@@ -156,7 +171,7 @@ export const storageService = {
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
       outfits.forEach(outfit => {
-        setDoc(doc(db, `users/${userId}/outfits`, outfit.id), outfit).catch(err => {
+        setDoc(doc(db, `users/${userId}/outfits`, outfit.id), sanitize(outfit)).catch(err => {
           console.error('Cloud sync error (outfit):', err);
         });
       });
@@ -235,7 +250,7 @@ export const storageService = {
     if (auth.currentUser) {
       const userId = auth.currentUser.uid;
       events.forEach(event => {
-        setDoc(doc(db, `users/${userId}/events`, event.id), event).catch(err => {
+        setDoc(doc(db, `users/${userId}/events`, event.id), sanitize(event)).catch(err => {
           console.error('Cloud sync error (event):', err);
         });
       });
@@ -250,18 +265,32 @@ export const storageService = {
   syncToCloud: async () => {
     if (!auth.currentUser) return;
     const userId = auth.currentUser.uid;
+    
+    console.log('Starting full cloud sync...');
     const batch = writeBatch(db);
 
     const pieces = storageService.getPieces();
     const outfits = storageService.getOutfits();
     const events = storageService.getEvents();
 
-    pieces.forEach(p => batch.set(doc(db, `users/${userId}/pieces`, p.id), p));
-    outfits.forEach(o => batch.set(doc(db, `users/${userId}/outfits`, o.id), o));
-    events.forEach(e => batch.set(doc(db, `users/${userId}/events`, e.id), e));
+    // 1. Clear existing data in cloud to ensure a clean sync
+    // Note: In a large app we'd only sync diffs, but for this wardrobe app, 
+    // a full sync is safer and simpler for ensuring "Source of Truth"
+    const pSnap = await getDocs(collection(db, `users/${userId}/pieces`));
+    const oSnap = await getDocs(collection(db, `users/${userId}/outfits`));
+    const eSnap = await getDocs(collection(db, `users/${userId}/events`));
+    
+    pSnap.docs.forEach(d => batch.delete(d.ref));
+    oSnap.docs.forEach(d => batch.delete(d.ref));
+    eSnap.docs.forEach(d => batch.delete(d.ref));
+
+    // 2. Set new data
+    pieces.forEach(p => batch.set(doc(db, `users/${userId}/pieces`, p.id), sanitize(p)));
+    outfits.forEach(o => batch.set(doc(db, `users/${userId}/outfits`, o.id), sanitize(o)));
+    events.forEach(e => batch.set(doc(db, `users/${userId}/events`, e.id), sanitize(e)));
 
     await batch.commit();
-    console.log('Local data synced to cloud');
+    console.log('Cloud sync complete');
   },
 
   syncFromCloud: async () => {
@@ -283,19 +312,31 @@ export const storageService = {
     return { pieces, outfits, events };
   },
 
-  initializeWithSourceOfTruth: async () => {
+  initializeWithSourceOfTruth: async (force = false) => {
     if (!auth.currentUser) return;
     
-    // Only initialize if cloud is empty
-    const piecesSnap = await getDocs(collection(db, `users/${auth.currentUser.uid}/pieces`));
-    if (!piecesSnap.empty) return;
+    // Only initialize if cloud is empty or if forced
+    if (!force) {
+      const piecesSnap = await getDocs(collection(db, `users/${auth.currentUser.uid}/pieces`));
+      if (!piecesSnap.empty) return;
+    }
 
     console.log('Initializing cloud with source of truth data...');
     const userId = auth.currentUser.uid;
     const batch = writeBatch(db);
 
-    SOURCE_OF_TRUTH_PIECES.forEach(p => batch.set(doc(db, `users/${userId}/pieces`, p.id), p));
-    SOURCE_OF_TRUTH_OUTFITS.forEach(o => batch.set(doc(db, `users/${userId}/outfits`, o.id), o));
+    // Clear existing if forced
+    if (force) {
+      const pSnap = await getDocs(collection(db, `users/${userId}/pieces`));
+      const oSnap = await getDocs(collection(db, `users/${userId}/outfits`));
+      const eSnap = await getDocs(collection(db, `users/${userId}/events`));
+      pSnap.docs.forEach(d => batch.delete(d.ref));
+      oSnap.docs.forEach(d => batch.delete(d.ref));
+      eSnap.docs.forEach(d => batch.delete(d.ref));
+    }
+
+    SOURCE_OF_TRUTH_PIECES.forEach(p => batch.set(doc(db, `users/${userId}/pieces`, p.id), sanitize(p)));
+    SOURCE_OF_TRUTH_OUTFITS.forEach(o => batch.set(doc(db, `users/${userId}/outfits`, o.id), sanitize(o)));
     
     // Add Japan Trip event by default
     const japanTrip: Event = { 
@@ -308,7 +349,7 @@ export const storageService = {
         date: `2026-04-${11 + i}`
       }))
     };
-    batch.set(doc(db, `users/${userId}/events`, japanTrip.id), japanTrip);
+    batch.set(doc(db, `users/${userId}/events`, japanTrip.id), sanitize(japanTrip));
 
     await batch.commit();
     
@@ -329,28 +370,22 @@ export const storageService = {
     const unsubPieces = onSnapshot(collection(db, `users/${userId}/pieces`), (snap) => {
       if (snap.metadata.hasPendingWrites) return; // Ignore local changes to avoid loops
       const pieces = snap.docs.map(d => d.data() as Piece);
-      if (pieces.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
-        onPieces(pieces);
-      }
+      localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
+      onPieces(pieces);
     });
 
     const unsubOutfits = onSnapshot(collection(db, `users/${userId}/outfits`), (snap) => {
       if (snap.metadata.hasPendingWrites) return;
       const outfits = snap.docs.map(d => d.data() as Outfit);
-      if (outfits.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
-        onOutfits(outfits);
-      }
+      localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
+      onOutfits(outfits);
     });
 
     const unsubEvents = onSnapshot(collection(db, `users/${userId}/events`), (snap) => {
       if (snap.metadata.hasPendingWrites) return;
       const events = snap.docs.map(d => d.data() as Event);
-      if (events.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
-        onEvents(events);
-      }
+      localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+      onEvents(events);
     });
 
     return () => {
