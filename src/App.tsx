@@ -44,7 +44,12 @@ import {
   Columns2,
   Circle,
   ArrowLeft,
-  Check
+  Check,
+  Cloud,
+  CloudOff,
+  LogIn,
+  LogOut,
+  RefreshCw
 } from 'lucide-react';
 import { 
   Piece, 
@@ -57,6 +62,8 @@ import {
   Weather 
 } from './types';
 import { storageService } from './storageService';
+import { auth, googleProvider, db } from './firebase';
+import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { 
   WardrobeLogo,
   CrewNeckIcon, 
@@ -116,6 +123,12 @@ export default function App() {
   const [events, setEvents] = useState<Event[]>(() => storageService.getEvents());
   const [lastExported, setLastExported] = useState<number | null>(() => storageService.getLastExported());
   
+  // Auth & Sync State
+  const [user, setUser] = useState<User | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  
   // Modals & Selection State
   const [showAddPiece, setShowAddPiece] = useState(false);
   const [editingPiece, setEditingPiece] = useState<Piece | null>(null);
@@ -129,6 +142,74 @@ export default function App() {
   const [confirmImport, setConfirmImport] = useState<string | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [showAddOutfit, setShowAddOutfit] = useState(false);
+
+  // Auth Listener
+  useEffect(() => {
+    let unsubscribeCloud: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      setIsAuthReady(true);
+      
+      if (currentUser) {
+        // Initial sync from cloud on login
+        setIsSyncing(true);
+        try {
+          const cloudData = await storageService.syncFromCloud();
+          if (cloudData) {
+            setPieces(cloudData.pieces);
+            setOutfits(cloudData.outfits);
+            setEvents(cloudData.events);
+          }
+          
+          // Subscribe to real-time updates
+          unsubscribeCloud = storageService.subscribeToCloud(
+            currentUser.uid,
+            setPieces,
+            setOutfits,
+            setEvents
+          );
+        } catch (err) {
+          console.error('Initial sync error:', err);
+          setSyncError('Failed to sync from cloud');
+        } finally {
+          setIsSyncing(false);
+        }
+      } else {
+        if (unsubscribeCloud) {
+          unsubscribeCloud();
+          unsubscribeCloud = null;
+        }
+      }
+    });
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeCloud) unsubscribeCloud();
+    };
+  }, []);
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      // syncToCloud will be triggered by the storageService calls if we were to save something, 
+      // but let's explicitly sync local to cloud on first login if cloud is empty
+      const cloudData = await storageService.syncFromCloud();
+      if (!cloudData || (cloudData.pieces.length === 0 && pieces.length > 0)) {
+        await storageService.syncToCloud();
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setSyncError('Login failed');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
 
   // Save data
   useEffect(() => {
@@ -351,6 +432,16 @@ export default function App() {
           <h1 className="text-xl font-semibold tracking-tight italic serif">Digital Wardrobe</h1>
         </div>
         <div className="flex items-center gap-3">
+          {user && (
+            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+              {isSyncing ? (
+                <RefreshCw size={12} className="animate-spin" />
+              ) : (
+                <Cloud size={12} className="text-emerald-500" />
+              )}
+              <span className="hidden sm:inline">Synced</span>
+            </div>
+          )}
           {(view === 'Wardrobe' || view === 'Outfits') && (
             <button 
               onClick={() => view === 'Wardrobe' ? setShowAddPiece(true) : setView('Builder')}
@@ -410,6 +501,10 @@ export default function App() {
           {view === 'Settings' && (
             <SettingsView 
               lastExported={lastExported}
+              user={user}
+              isSyncing={isSyncing}
+              onLogin={handleLogin}
+              onLogout={handleLogout}
               onExport={handleExport}
               onImport={handleImport}
               onReset={() => setConfirmReset(true)}
@@ -1820,7 +1915,25 @@ function QuickOutfitBuilder({ pieces, onClose, onSave }: { pieces: Piece[], onCl
   );
 }
 
-function SettingsView({ lastExported, onExport, onImport, onReset }: { lastExported: number | null, onExport: () => void, onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, onReset: () => void }) {
+function SettingsView({ 
+  lastExported, 
+  user, 
+  isSyncing, 
+  onLogin, 
+  onLogout, 
+  onExport, 
+  onImport, 
+  onReset 
+}: { 
+  lastExported: number | null, 
+  user: User | null,
+  isSyncing: boolean,
+  onLogin: () => void,
+  onLogout: () => void,
+  onExport: () => void, 
+  onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, 
+  onReset: () => void 
+}) {
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -1834,6 +1947,64 @@ function SettingsView({ lastExported, onExport, onImport, onReset }: { lastExpor
       </div>
 
       <div className="space-y-4">
+        {/* Cloud Sync Section */}
+        <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6 space-y-6">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${user ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-50 text-[#1A1A1A]'}`}>
+              {user ? <Cloud size={24} /> : <CloudOff size={24} />}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold">Cloud Sync</h3>
+              <p className="text-xs text-[#A1A1A1]">
+                {user 
+                  ? `Syncing as ${user.email}` 
+                  : 'Sign in to sync your wardrobe across all your devices.'}
+              </p>
+            </div>
+          </div>
+
+          {user ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                <div className="flex items-center gap-3">
+                  {user.photoURL ? (
+                    <img src={user.photoURL} alt="" className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-8 h-8 bg-[#1A1A1A] rounded-full flex items-center justify-center text-white text-[10px] font-bold">
+                      {user.email?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold truncate">{user.displayName || user.email}</p>
+                    <p className="text-[10px] text-[#A1A1A1] uppercase tracking-widest">Connected</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={onLogout}
+                  className="p-2 text-[#A1A1A1] hover:text-red-500 transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold uppercase tracking-widest">
+                <CheckCircle2 size={14} />
+                Automatic Sync Enabled
+                {isSyncing && <RefreshCw size={12} className="animate-spin ml-auto" />}
+              </div>
+            </div>
+          ) : (
+            <button 
+              onClick={onLogin}
+              className="w-full flex items-center justify-center gap-3 py-4 bg-[#1A1A1A] text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-black transition-colors"
+            >
+              <LogIn size={18} />
+              Sign in with Google
+            </button>
+          )}
+        </div>
+
         <div className="bg-white border border-[#E5E5E5] rounded-3xl p-6 space-y-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-[#1A1A1A]">

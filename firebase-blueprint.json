@@ -1,0 +1,80 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User specific settings and metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "lastSync": { "type": "number" }
+      },
+      "required": ["uid"]
+    },
+    "Piece": {
+      "title": "Clothing Piece",
+      "description": "An individual item of clothing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "category": { "type": "string" },
+        "color": { "type": "string" },
+        "hex": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "title", "type"]
+    },
+    "Outfit": {
+      "title": "Outfit",
+      "description": "A combination of clothing pieces",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "topId": { "type": "string" },
+        "bottomId": { "type": "string" },
+        "outerId": { "type": "string" },
+        "accessoryId": { "type": "string" },
+        "occasion": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "number" },
+        "weather": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["id", "topId", "bottomId"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "A travel event or trip",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "packedPieceIds": { "type": "array", "items": { "type": "string" } },
+        "dayAssignments": { "type": "array" }
+      },
+      "required": ["id", "name", "startDate", "endDate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document"
+    },
+    "/users/{userId}/pieces/{pieceId}": {
+      "schema": "Piece",
+      "description": "User's clothing pieces"
+    },
+    "/users/{userId}/outfits/{outfitId}": {
+      "schema": "Outfit",
+      "description": "User's saved outfits"
+    },
+    "/users/{userId}/events/{eventId}": {
+      "schema": "Event",
+      "description": "User's travel events"
+    }
+  }
+}

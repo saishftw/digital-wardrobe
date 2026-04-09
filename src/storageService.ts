@@ -1,11 +1,23 @@
 import { Piece, Outfit, Event } from './types';
 import { INITIAL_PIECES, INITIAL_OUTFITS } from './constants';
+import { db, auth } from './firebase';
+import { 
+  doc, 
+  setDoc, 
+  collection, 
+  getDocs, 
+  writeBatch,
+  onSnapshot,
+  query,
+  getDoc
+} from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   PIECES: 'wardrobe_pieces',
   OUTFITS: 'wardrobe_outfits',
   EVENTS: 'wardrobe_events',
   LAST_EXPORTED: 'wardrobe_last_exported',
+  SYNC_STATUS: 'wardrobe_sync_status',
 };
 
 export const storageService = {
@@ -42,6 +54,12 @@ export const storageService = {
         storageService.savePieces(data.pieces);
         storageService.saveOutfits(data.outfits);
         storageService.saveEvents(data.events);
+        
+        // If logged in, sync to cloud
+        if (auth.currentUser) {
+          storageService.syncToCloud();
+        }
+        
         return true;
       }
       return false;
@@ -50,6 +68,7 @@ export const storageService = {
       return false;
     }
   },
+
   getPieces: (): Piece[] => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PIECES);
@@ -88,6 +107,16 @@ export const storageService = {
 
   savePieces: (pieces: Piece[]) => {
     localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
+    
+    // Sync to cloud if logged in
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      pieces.forEach(piece => {
+        setDoc(doc(db, `users/${userId}/pieces`, piece.id), piece).catch(err => {
+          console.error('Cloud sync error (piece):', err);
+        });
+      });
+    }
   },
 
   getOutfits: (): Outfit[] => {
@@ -105,7 +134,7 @@ export const storageService = {
       const migratedOutfits = outfits.map(o => ({
         ...o,
         occasion: o.occasion || ['Casual'],
-        rating: o.rating ?? 5,
+        rating: o.rating ?? 0,
         weather: o.weather || 'Cool'
       }));
 
@@ -122,6 +151,16 @@ export const storageService = {
 
   saveOutfits: (outfits: Outfit[]) => {
     localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
+
+    // Sync to cloud if logged in
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      outfits.forEach(outfit => {
+        setDoc(doc(db, `users/${userId}/outfits`, outfit.id), outfit).catch(err => {
+          console.error('Cloud sync error (outfit):', err);
+        });
+      });
+    }
   },
 
   getEvents: (): Event[] => {
@@ -191,9 +230,96 @@ export const storageService = {
 
   saveEvents: (events: Event[]) => {
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+
+    // Sync to cloud if logged in
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      events.forEach(event => {
+        setDoc(doc(db, `users/${userId}/events`, event.id), event).catch(err => {
+          console.error('Cloud sync error (event):', err);
+        });
+      });
+    }
   },
 
   clearAllData: () => {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+  },
+
+  // Cloud Sync Utilities
+  syncToCloud: async () => {
+    if (!auth.currentUser) return;
+    const userId = auth.currentUser.uid;
+    const batch = writeBatch(db);
+
+    const pieces = storageService.getPieces();
+    const outfits = storageService.getOutfits();
+    const events = storageService.getEvents();
+
+    pieces.forEach(p => batch.set(doc(db, `users/${userId}/pieces`, p.id), p));
+    outfits.forEach(o => batch.set(doc(db, `users/${userId}/outfits`, o.id), o));
+    events.forEach(e => batch.set(doc(db, `users/${userId}/events`, e.id), e));
+
+    await batch.commit();
+    console.log('Local data synced to cloud');
+  },
+
+  syncFromCloud: async () => {
+    if (!auth.currentUser) return;
+    const userId = auth.currentUser.uid;
+
+    const piecesSnap = await getDocs(collection(db, `users/${userId}/pieces`));
+    const outfitsSnap = await getDocs(collection(db, `users/${userId}/outfits`));
+    const eventsSnap = await getDocs(collection(db, `users/${userId}/events`));
+
+    const pieces = piecesSnap.docs.map(d => d.data() as Piece);
+    const outfits = outfitsSnap.docs.map(d => d.data() as Outfit);
+    const events = eventsSnap.docs.map(d => d.data() as Event);
+
+    if (pieces.length > 0) localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
+    if (outfits.length > 0) localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
+    if (events.length > 0) localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+
+    return { pieces, outfits, events };
+  },
+
+  subscribeToCloud: (
+    userId: string, 
+    onPieces: (p: Piece[]) => void, 
+    onOutfits: (o: Outfit[]) => void, 
+    onEvents: (e: Event[]) => void
+  ) => {
+    const unsubPieces = onSnapshot(collection(db, `users/${userId}/pieces`), (snap) => {
+      if (snap.metadata.hasPendingWrites) return; // Ignore local changes to avoid loops
+      const pieces = snap.docs.map(d => d.data() as Piece);
+      if (pieces.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
+        onPieces(pieces);
+      }
+    });
+
+    const unsubOutfits = onSnapshot(collection(db, `users/${userId}/outfits`), (snap) => {
+      if (snap.metadata.hasPendingWrites) return;
+      const outfits = snap.docs.map(d => d.data() as Outfit);
+      if (outfits.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
+        onOutfits(outfits);
+      }
+    });
+
+    const unsubEvents = onSnapshot(collection(db, `users/${userId}/events`), (snap) => {
+      if (snap.metadata.hasPendingWrites) return;
+      const events = snap.docs.map(d => d.data() as Event);
+      if (events.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
+        onEvents(events);
+      }
+    });
+
+    return () => {
+      unsubPieces();
+      unsubOutfits();
+      unsubEvents();
+    };
   }
 };

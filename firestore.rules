@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{userId}
+    // Fields: uid, email, lastSync
+    //
+    // Collection: /users/{userId}/pieces/{pieceId}
+    // Fields: id, title, type, category, color, hex, status, createdAt
+    //
+    // Collection: /users/{userId}/outfits/{outfitId}
+    // Fields: id, topId, bottomId, outerId, accessoryId, occasion, rating, weather, notes
+    //
+    // Collection: /users/{userId}/events/{eventId}
+    // Fields: id, name, startDate, endDate, packedPieceIds, dayAssignments
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "ksaish1998@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidString(field, min, max) {
+      return request.resource.data[field] is string && 
+             request.resource.data[field].size() >= min && 
+             request.resource.data[field].size() <= max;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isAdmin();
+
+      match /pieces/{pieceId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /outfits/{outfitId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      match /events/{eventId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
+    }
+  }
+}
