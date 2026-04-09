@@ -29,14 +29,16 @@ export interface Outfit {
   isSuggested?: boolean;
 }
 
-export interface EventOutfit {
-  outfitId: string;
-  isWorn: boolean;
+export interface DayAssignment {
+  date: string; // ISO string YYYY-MM-DD
+  outfitId?: string;
 }
 
 export interface Event {
   id: string;
   name: string;
+  startDate: string; // ISO string
+  endDate: string; // ISO string
   packedPieceIds: string[];
-  outfits?: EventOutfit[];
+  dayAssignments: DayAssignment[];
 }

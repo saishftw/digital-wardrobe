@@ -7,6 +7,7 @@ export const INITIAL_PIECES: Piece[] = [
   { id: 'b2', title: 'Beige Linen Pants', type: 'Bottom', category: 'Pants', color: 'Beige', hex: '#F5F5DC', status: 'Owned', createdAt: 1711710000001 },
   { id: 'b3', title: 'Light-blue Denim', type: 'Bottom', category: 'Pants', color: 'Light Blue', hex: '#ADD8E6', status: 'Owned', createdAt: 1711710000002 },
   { id: 'b6', title: 'Dark Beige Chinos', type: 'Bottom', category: 'Pants', color: 'Dark Beige', hex: '#968966', status: 'Owned', createdAt: 1711710000026 },
+  { id: 'b7', title: 'Black Lounge Pants', type: 'Bottom', category: 'Pants', color: 'Black', hex: '#000000', status: 'Owned', createdAt: 1711710000034 },
 
   // Tops
   { id: 't1', title: 'Slate-blue Corduroy Shirt', type: 'Top', category: 'Shirt (LS)', color: 'Slate Blue', hex: '#708090', status: 'Owned', createdAt: 1711710000005 },
@@ -42,6 +43,7 @@ export const INITIAL_PIECES: Piece[] = [
 
   // Accessories
   { id: 'a1', title: 'Red Slim Tie', type: 'Accessory', category: 'Other', color: 'Red', hex: '#FF0000', status: 'Owned', createdAt: 1711710000032 },
+  { id: 'a2', title: 'Black Tie', type: 'Accessory', category: 'Other', color: 'Black', hex: '#000000', status: 'Owned', createdAt: 1711710000033 },
 ];
 
 export const INITIAL_OUTFITS: Outfit[] = [
@@ -113,6 +115,11 @@ export const INITIAL_OUTFITS: Outfit[] = [
   { id: 'o58', bottomId: 'b1', topId: 't22', accessoryId: 'a1', rating: 9, occasion: ['Formal'], weather: 'Cool', notes: 'White shirt + red tie + pleated pants' },
   { id: 'o59', bottomId: 'b1', topId: 't21', rating: 8, occasion: ['Traditional'], weather: 'Warm', notes: 'Kurta + pleated pants black' },
   { id: 'o60', bottomId: 'b1', topId: 't22', outerId: 'o1', accessoryId: 'a1', rating: 10, occasion: ['Formal'], weather: 'Cool', notes: 'Bomber jacket + shirt + tie combo — very sharp formal look.' },
+  { id: 'o61', bottomId: 'b1', topId: 't22', outerId: 'o2', accessoryId: 'a2', rating: 10, occasion: ['Formal'], weather: 'Cool', notes: 'Rust Harrington + White Shirt + Black Tie + Pleated Pants' },
+  // Lounge Pants Outfits
+  { id: 'o62', bottomId: 'b7', topId: 't2', rating: 9, occasion: ['Casual'], weather: 'Warm', notes: 'White Crew-neck + Black Lounge Pants' },
+  { id: 'o63', bottomId: 'b7', topId: 't6', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Grey Crew-neck + Black Lounge Pants' },
+  { id: 'o64', bottomId: 'b7', topId: 't10', rating: 8, occasion: ['Casual'], weather: 'Cool', notes: 'Black Crew-neck + Black Lounge Pants' },
 ];
 
 export const WardrobeLogo = ({ size = 24, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) => (

@@ -93,11 +93,27 @@ export const storageService = {
   getOutfits: (): Outfit[] => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.OUTFITS);
+      let outfits: Outfit[] = [];
+      
       if (!stored || JSON.parse(stored).length === 0) {
-        localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(INITIAL_OUTFITS));
-        return INITIAL_OUTFITS;
+        outfits = INITIAL_OUTFITS;
+      } else {
+        outfits = JSON.parse(stored);
       }
-      return JSON.parse(stored);
+
+      // Migration: Ensure all outfits have required fields
+      const migratedOutfits = outfits.map(o => ({
+        ...o,
+        occasion: o.occasion || ['Casual'],
+        rating: o.rating ?? 5,
+        weather: o.weather || 'Cool'
+      }));
+
+      if (JSON.stringify(migratedOutfits) !== JSON.stringify(outfits)) {
+        storageService.saveOutfits(migratedOutfits);
+      }
+
+      return migratedOutfits;
     } catch (e) {
       console.error('Failed to load outfits', e);
       return INITIAL_OUTFITS;
@@ -111,14 +127,62 @@ export const storageService = {
   getEvents: (): Event[] => {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.EVENTS);
+      let events: Event[] = [];
+      
       if (!stored || JSON.parse(stored).length === 0) {
-        const initialEvents: Event[] = [
-          { id: 'e1', name: 'Japan Trip', packedPieceIds: [] }
+        events = [
+          { 
+            id: 'e1', 
+            name: 'Japan Trip', 
+            startDate: '2026-04-11', 
+            endDate: '2026-04-25', 
+            packedPieceIds: [], 
+            dayAssignments: [
+              { date: '2026-04-11' }, { date: '2026-04-12' }, { date: '2026-04-13' },
+              { date: '2026-04-14' }, { date: '2026-04-15' }, { date: '2026-04-16' },
+              { date: '2026-04-17' }, { date: '2026-04-18' }, { date: '2026-04-19' },
+              { date: '2026-04-20' }, { date: '2026-04-21' }, { date: '2026-04-22' },
+              { date: '2026-04-23' }, { date: '2026-04-24' }, { date: '2026-04-25' }
+            ] 
+          }
         ];
-        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(initialEvents));
-        return initialEvents;
+      } else {
+        events = JSON.parse(stored);
       }
-      return JSON.parse(stored);
+
+      // Migration: Ensure all events have required arrays and fix Japan Trip dates
+      const migratedEvents = events.map(e => {
+        let updatedEvent = {
+          ...e,
+          packedPieceIds: e.packedPieceIds || [],
+          dayAssignments: e.dayAssignments || []
+        };
+
+        // Fix Japan Trip dates if they are invalid or old
+        if (e.name === 'Japan Trip' && (e.startDate !== '2026-04-11' || e.endDate !== '2026-04-25')) {
+          updatedEvent.startDate = '2026-04-11';
+          updatedEvent.endDate = '2026-04-25';
+          
+          // Re-generate day assignments for the correct range
+          const start = new Date('2026-04-11');
+          const end = new Date('2026-04-25');
+          const dayAssignments = [];
+          for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+            dayAssignments.push({
+              date: d.toISOString().split('T')[0],
+            });
+          }
+          updatedEvent.dayAssignments = dayAssignments;
+        }
+
+        return updatedEvent;
+      });
+
+      if (JSON.stringify(migratedEvents) !== JSON.stringify(events)) {
+        storageService.saveEvents(migratedEvents);
+      }
+
+      return migratedEvents;
     } catch (e) {
       console.error('Failed to load events', e);
       return [];

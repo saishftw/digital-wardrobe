@@ -42,12 +42,15 @@ import {
   ShoppingBag,
   Wind,
   Columns2,
-  Circle
+  Circle,
+  ArrowLeft,
+  Check
 } from 'lucide-react';
 import { 
   Piece, 
   Outfit, 
   Event, 
+  DayAssignment,
   PieceType, 
   PieceStatus, 
   PieceCategory, 
@@ -120,7 +123,7 @@ export default function App() {
   const [viewingOutfit, setViewingOutfit] = useState<Outfit | null>(null);
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [selectedPieceId2, setSelectedPieceId2] = useState<string | null>(null); // Multi-piece selection
-  const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [packingPieceId, setPackingPieceId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ type: 'piece' | 'event', id: string } | null>(null);
   const [confirmImport, setConfirmImport] = useState<string | null>(null);
@@ -182,6 +185,17 @@ export default function App() {
       setPieces(pieces.map(p => p.id === editingPiece.id ? { ...pieceData, id: editingPiece.id, createdAt: p.createdAt } : p));
       setEditingPiece(null);
     } else {
+      // Idempotency check: don't add if a piece with same title, type and color exists
+      const exists = pieces.find(p => 
+        p.title.toLowerCase() === pieceData.title.toLowerCase() && 
+        p.type === pieceData.type && 
+        p.color.toLowerCase() === pieceData.color.toLowerCase()
+      );
+      if (exists) {
+        setShowAddPiece(false);
+        return;
+      }
+
       const piece: Piece = {
         ...pieceData,
         id: Math.random().toString(36).substr(2, 9),
@@ -268,6 +282,15 @@ export default function App() {
   };
 
   const addOutfit = (outfit: Omit<Outfit, 'id'>) => {
+    // Idempotency check: don't add if an outfit with same pieces exists
+    const exists = outfits.find(o => 
+      o.topId === outfit.topId && 
+      o.bottomId === outfit.bottomId && 
+      o.outerId === outfit.outerId && 
+      o.accessoryId === outfit.accessoryId
+    );
+    if (exists) return;
+
     const newOutfit: Outfit = {
       ...outfit,
       id: `o${Date.now()}`
@@ -275,14 +298,42 @@ export default function App() {
     setOutfits([...outfits, newOutfit]);
   };
 
-  const addEvent = (name: string) => {
+  const addEvent = (name: string, startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dayAssignments: DayAssignment[] = [];
+    
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dayAssignments.push({
+        date: d.toISOString().split('T')[0],
+      });
+    }
+
     const newEvent: Event = {
       id: Math.random().toString(36).substr(2, 9),
       name,
+      startDate,
+      endDate,
       packedPieceIds: [],
-      outfits: []
+      dayAssignments
     };
     setEvents([...events, newEvent]);
+  };
+
+  const updateEventPackedPieces = (eventId: string, pieceIds: string[]) => {
+    setEvents(events.map(e => e.id === eventId ? { ...e, packedPieceIds: pieceIds } : e));
+  };
+
+  const updateEventDayAssignment = (eventId: string, date: string, outfitId: string | undefined) => {
+    setEvents(events.map(e => {
+      if (e.id === eventId) {
+        return {
+          ...e,
+          dayAssignments: e.dayAssignments.map(da => da.date === date ? { ...da, outfitId } : da)
+        };
+      }
+      return e;
+    }));
   };
 
   const deleteEvent = (id: string) => {
@@ -300,9 +351,9 @@ export default function App() {
           <h1 className="text-xl font-semibold tracking-tight italic serif">Digital Wardrobe</h1>
         </div>
         <div className="flex items-center gap-3">
-          {view === 'Wardrobe' && (
+          {(view === 'Wardrobe' || view === 'Outfits') && (
             <button 
-              onClick={() => setShowAddPiece(true)}
+              onClick={() => view === 'Wardrobe' ? setShowAddPiece(true) : setView('Builder')}
               className="p-2 rounded-full bg-[#1A1A1A] text-white hover:scale-105 transition-transform"
             >
               <Plus size={20} />
@@ -333,6 +384,7 @@ export default function App() {
               outfits={outfits} 
               pieces={pieces}
               onViewOutfit={setViewingOutfit}
+              onAddOutfit={() => setView('Builder')}
             />
           )}
           {view === 'Builder' && (
@@ -344,22 +396,15 @@ export default function App() {
               onSelectPiece={setSelectedPieceId}
               onSelectPiece2={setSelectedPieceId2}
               onViewOutfit={setViewingOutfit}
-              onAddOutfit={() => setShowAddOutfit(true)}
+              onAddOutfit={addOutfit}
             />
           )}
           {view === 'Events' && (
             <EventsView 
               events={events}
-              pieces={pieces}
-              outfits={outfits}
-              activeEventId={activeEventId}
-              onSetActiveEvent={setActiveEventId}
+              onSelectEvent={setSelectedEventId}
               onAddEvent={addEvent}
               onDeleteEvent={deleteEvent}
-              onTogglePacked={togglePacked}
-              onToggleWorn={toggleWorn}
-              onAddOutfit={addOutfitToEvent}
-              onRemoveOutfit={removeOutfitFromEvent}
             />
           )}
           {view === 'Settings' && (
@@ -380,6 +425,21 @@ export default function App() {
         <NavButton active={view === 'Builder'} onClick={() => setView('Builder')} icon={<ArrowRightLeft size={22} />} label="Builder" />
         <NavButton active={view === 'Events'} onClick={() => setView('Events')} icon={<Calendar size={22} />} label="Events" />
       </nav>
+
+      {/* Event Detail View */}
+      <AnimatePresence>
+        {selectedEventId && (
+          <EventDetailView 
+            event={events.find(e => e.id === selectedEventId)!}
+            pieces={pieces}
+            outfits={outfits}
+            onClose={() => setSelectedEventId(null)}
+            onUpdatePacked={updateEventPackedPieces}
+            onUpdateAssignment={updateEventDayAssignment}
+            onAddOutfit={addOutfit}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Modals */}
       <AnimatePresence>
@@ -675,7 +735,7 @@ function WardrobeView({ pieces, onViewPiece, onPackPiece, onToggleStatus }: { pi
   );
 }
 
-function OutfitsView({ outfits, pieces, onViewOutfit }: { outfits: Outfit[], pieces: Piece[], onViewOutfit: (o: Outfit) => void }) {
+function OutfitsView({ outfits, pieces, onViewOutfit, onAddOutfit }: { outfits: Outfit[], pieces: Piece[], onViewOutfit: (o: Outfit) => void, onAddOutfit: () => void }) {
   const [filter, setFilter] = useState<string | 'All'>('All');
   const [sortBy, setSortBy] = useState<'rating' | 'newest'>('rating');
   const [ownedOnly, setOwnedOnly] = useState(true);
@@ -735,14 +795,23 @@ function OutfitsView({ outfits, pieces, onViewOutfit }: { outfits: Outfit[], pie
               </button>
             ))}
           </div>
-          <button 
-            onClick={() => setOwnedOnly(!ownedOnly)}
-            className={`ml-4 px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${
-              ownedOnly ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-[#A1A1A1] border-[#E5E5E5]'
-            }`}
-          >
-            {ownedOnly ? 'Owned Only' : 'Show All'}
-          </button>
+          <div className="flex items-center gap-2 ml-4">
+            <button 
+              onClick={onAddOutfit}
+              className="px-3 py-1.5 rounded-xl bg-[#1A1A1A] text-white text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-transform flex items-center gap-1.5"
+            >
+              <Plus size={12} />
+              Create
+            </button>
+            <button 
+              onClick={() => setOwnedOnly(!ownedOnly)}
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                ownedOnly ? 'bg-green-50 text-green-700 border-green-200' : 'bg-white text-[#A1A1A1] border-[#E5E5E5]'
+              }`}
+            >
+              {ownedOnly ? 'Owned Only' : 'Show All'}
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
@@ -809,7 +878,7 @@ function OutfitsView({ outfits, pieces, onViewOutfit }: { outfits: Outfit[], pie
                     {top?.title} + {bottom?.title} {outer ? `+ ${outer.title}` : ''} {accessory ? `+ ${accessory.title}` : ''}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {outfit.occasion.map(occ => (
+                    {outfit.occasion?.map(occ => (
                       <span key={occ} className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 bg-gray-50 text-[#A1A1A1] rounded-full">{occ}</span>
                     ))}
                   </div>
@@ -841,7 +910,7 @@ function OutfitsView({ outfits, pieces, onViewOutfit }: { outfits: Outfit[], pie
   );
 }
 
-function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSelectPiece, onSelectPiece2, onViewOutfit, onAddOutfit }: { pieces: Piece[], outfits: Outfit[], selectedPieceId: string | null, selectedPieceId2: string | null, onSelectPiece: (id: string | null) => void, onSelectPiece2: (id: string | null) => void, onViewOutfit: (o: Outfit) => void, onAddOutfit: () => void }) {
+function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSelectPiece, onSelectPiece2, onViewOutfit, onAddOutfit }: { pieces: Piece[], outfits: Outfit[], selectedPieceId: string | null, selectedPieceId2: string | null, onSelectPiece: (id: string | null) => void, onSelectPiece2: (id: string | null) => void, onViewOutfit: (o: Outfit) => void, onAddOutfit: (o: Omit<Outfit, 'id'>) => void }) {
   const [search, setSearch] = useState('');
   const [weatherFilter, setWeatherFilter] = useState<Weather | 'All'>('All');
   const [occasionFilter, setOccasionFilter] = useState<string | 'All'>('All');
@@ -908,6 +977,32 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
     if (piece.type === 'Shoes' && other.type === 'Shoes') return false;
 
     return true;
+  };
+
+  const currentOutfitExists = useMemo(() => {
+    if (!selectedPieceId || !selectedPieceId2) return false;
+    return outfits.some(o => 
+      (o.topId === selectedPieceId && o.bottomId === selectedPieceId2) ||
+      (o.topId === selectedPieceId2 && o.bottomId === selectedPieceId)
+    );
+  }, [outfits, selectedPieceId, selectedPieceId2]);
+
+  const handleSaveOutfit = () => {
+    if (!selectedPieceId || !selectedPieceId2) return;
+    const p1 = getPiece(selectedPieceId);
+    const p2 = getPiece(selectedPieceId2);
+    if (!p1 || !p2) return;
+
+    const top = p1.type === 'Top' ? p1 : p2;
+    const bottom = p1.type === 'Bottom' ? p1 : p2;
+
+    onAddOutfit({
+      topId: top.id,
+      bottomId: bottom.id,
+      rating: 0,
+      occasion: ['Casual'],
+      weather: 'Cool'
+    });
   };
 
   return (
@@ -978,6 +1073,22 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
             </div>
           </div>
         </div>
+
+        {selectedPieceId && selectedPieceId2 && !currentOutfitExists && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pt-2"
+          >
+            <button 
+              onClick={handleSaveOutfit}
+              className="w-full py-4 bg-[#1A1A1A] text-white rounded-3xl text-sm font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles size={18} />
+              Save as New Outfit
+            </button>
+          </motion.div>
+        )}
 
         <div className="space-y-4">
           <div className="relative">
@@ -1104,33 +1215,19 @@ function BuilderView({ pieces, outfits, selectedPieceId, selectedPieceId2, onSel
 
 function EventsView({ 
   events, 
-  pieces, 
-  outfits,
-  activeEventId, 
-  onSetActiveEvent, 
+  onSelectEvent, 
   onAddEvent, 
   onDeleteEvent, 
-  onTogglePacked,
-  onToggleWorn,
-  onAddOutfit,
-  onRemoveOutfit
 }: { 
   events: Event[], 
-  pieces: Piece[], 
-  outfits: Outfit[],
-  activeEventId: string | null, 
-  onSetActiveEvent: (id: string | null) => void, 
-  onAddEvent: (name: string) => void, 
+  onSelectEvent: (id: string) => void, 
+  onAddEvent: (name: string, start: string, end: string) => void, 
   onDeleteEvent: (id: string) => void, 
-  onTogglePacked: (eid: string, pid: string) => void,
-  onToggleWorn: (eid: string, oid: string) => void,
-  onAddOutfit: (eid: string, oid: string) => void,
-  onRemoveOutfit: (eid: string, oid: string) => void
 }) {
   const [showAddEvent, setShowAddEvent] = useState(false);
   const [newEventName, setNewEventName] = useState('');
-
-  const ownedPieces = pieces.filter(p => p.status === 'Owned');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   return (
     <motion.div 
@@ -1150,261 +1247,576 @@ function EventsView({
       </div>
 
       <div className="space-y-4">
-        {events.map((event) => {
-          const progress = ownedPieces.length > 0 ? Math.round((event.packedPieceIds.length / ownedPieces.length) * 100) : 0;
-          
-          return (
-            <div 
-              key={event.id}
-              className="bg-white border border-[#E5E5E5] rounded-3xl overflow-hidden transition-all"
-            >
-              <div 
-                onClick={() => onSetActiveEvent(activeEventId === event.id ? null : event.id)}
-                className="p-6 cursor-pointer flex justify-between items-center"
-              >
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-bold">{event.name}</h3>
-                    <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">
-                      {event.packedPieceIds.length} items
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden max-w-[120px]">
-                      <div className="h-full bg-[#1A1A1A] transition-all duration-500" style={{ width: `${progress}%` }} />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">{progress}% Packed</span>
-                  </div>
+        {events.map((event) => (
+          <div 
+            key={event.id}
+            onClick={() => onSelectEvent(event.id)}
+            className="bg-white border border-[#E5E5E5] rounded-3xl p-6 cursor-pointer hover:border-[#1A1A1A] transition-all group"
+          >
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold group-hover:text-[#1A1A1A] transition-colors">{event.name}</h3>
+                <div className="flex items-center gap-2 text-[#A1A1A1] text-xs">
+                  <Calendar size={12} />
+                  <span>{new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id); }}
-                    className="p-2 text-[#A1A1A1] hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <ChevronDown 
-                    size={20} 
-                    className={`text-[#A1A1A1] transition-transform duration-300 ${activeEventId === event.id ? 'rotate-180' : ''}`} 
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDeleteEvent(event.id); }}
+                className="p-2 text-[#A1A1A1] hover:text-red-500 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            
+            <div className="mt-4 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {event.packedPieceIds?.slice(0, 5).map((pid, i) => (
+                  <div key={pid} className="w-6 h-6 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center overflow-hidden" style={{ zIndex: 5 - i }}>
+                    <div className="w-full h-full" style={{ backgroundColor: '#1A1A1A' }} />
+                  </div>
+                ))}
+                {(event.packedPieceIds?.length || 0) > 5 && (
+                  <div className="w-6 h-6 rounded-full border-2 border-white bg-gray-200 flex items-center justify-center text-[8px] font-bold z-0">
+                    +{(event.packedPieceIds?.length || 0) - 5}
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+                {event.packedPieceIds?.length || 0} items packed
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {showAddEvent && (
+          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowAddEvent(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="relative w-full max-w-md bg-white rounded-[40px] p-8 shadow-2xl space-y-6"
+            >
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-medium serif italic">New Event</h2>
+                <button onClick={() => setShowAddEvent(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A1A1A1]">Event Name</label>
+                  <input 
+                    className="w-full text-lg border-b border-[#E5E5E5] pb-2 outline-none focus:border-[#1A1A1A] transition-colors"
+                    placeholder="e.g. Japan Trip"
+                    value={newEventName}
+                    onChange={e => setNewEventName(e.target.value)}
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A1A1A1]">Start Date</label>
+                    <input 
+                      type="date"
+                      className="w-full text-sm border-b border-[#E5E5E5] pb-2 outline-none focus:border-[#1A1A1A] transition-colors"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A1A1A1]">End Date</label>
+                    <input 
+                      type="date"
+                      className="w-full text-sm border-b border-[#E5E5E5] pb-2 outline-none focus:border-[#1A1A1A] transition-colors"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <AnimatePresence>
-                {activeEventId === event.id && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="border-t border-[#F5F5F5] bg-gray-50/30"
-                  >
-                    <div className="p-6 space-y-8">
-                      <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Packed Items</h4>
-                        {event.packedPieceIds.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-3">
-                            {event.packedPieceIds.map(pid => {
-                              const piece = pieces.find(p => p.id === pid);
-                              if (!piece) return null;
-                              return (
-                                <div key={pid} className="flex items-center gap-3 p-3 bg-white border border-[#E5E5E5] rounded-2xl">
-                                  <PieceIcon category={piece.category} color={piece.hex} size={8} />
-                                  <span className="text-xs font-medium truncate flex-1">{piece.title}</span>
-                                  <button 
-                                    onClick={() => onTogglePacked(event.id, pid)}
-                                    className="text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors"
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-[#A1A1A1] italic">No items packed yet. Add them from the closet.</p>
-                        )}
-                      </div>
-
-                      {/* Event Outfits Section */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Event Outfits</h4>
-                          <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                            {(event.outfits || []).filter(o => o.isWorn).length} / {(event.outfits || []).length} Worn
-                          </span>
-                        </div>
-                        
-                        {(event.outfits || []).length > 0 ? (
-                          <div className="space-y-3">
-                            {(event.outfits || []).map(eo => {
-                              const outfit = outfits.find(o => o.id === eo.outfitId);
-                              if (!outfit) return null;
-                              const top = pieces.find(p => p.id === outfit.topId);
-                              const bottom = pieces.find(p => p.id === outfit.bottomId);
-                              const outer = outfit.outerId ? pieces.find(p => p.id === outfit.outerId) : null;
-                              const accessory = outfit.accessoryId ? pieces.find(p => p.id === outfit.accessoryId) : null;
-                              return (
-                                <div key={eo.outfitId} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${eo.isWorn ? 'bg-gray-50 border-transparent opacity-60' : 'bg-white border-[#E5E5E5]'}`}>
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex -space-x-2">
-                                      <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={6} />
-                                      <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={6} />
-                                      {outer && <PieceIcon category={outer.category} color={outer.hex} size={6} />}
-                                      {accessory && <PieceIcon category={accessory.category} color={accessory.hex} size={6} />}
-                                    </div>
-                                    <div className="space-y-0.5">
-                                      <p className="text-xs font-bold">{top?.title} + {bottom?.title} {outer ? `+ ${outer.title}` : ''} {accessory ? `+ ${accessory.title}` : ''}</p>
-                                      <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion.join(', ')}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <button 
-                                      onClick={() => onToggleWorn(event.id, eo.outfitId)}
-                                      className={`p-2 rounded-xl transition-all ${eo.isWorn ? 'bg-green-500 text-white' : 'bg-gray-100 text-[#A1A1A1] hover:bg-gray-200'}`}
-                                    >
-                                      <CheckCircle2 size={16} />
-                                    </button>
-                                    <button 
-                                      onClick={() => onRemoveOutfit(event.id, eo.outfitId)}
-                                      className="p-2 text-[#A1A1A1] hover:text-red-500"
-                                    >
-                                      <X size={16} />
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-[#A1A1A1] italic">No outfits added to this event yet.</p>
-                        )}
-                      </div>
-
-                      {/* Compatible Outfits Section */}
-                      {(() => {
-                        const compatibleOutfits = outfits.filter(outfit => {
-                          const hasBottom = event.packedPieceIds.includes(outfit.bottomId);
-                          const hasTop = event.packedPieceIds.includes(outfit.topId);
-                          const hasOuter = !outfit.outerId || event.packedPieceIds.includes(outfit.outerId);
-                          const isAlreadyAdded = (event.outfits || []).some(eo => eo.outfitId === outfit.id);
-                          return hasBottom && hasTop && hasOuter && !isAlreadyAdded;
-                        });
-
-                        if (compatibleOutfits.length === 0) return null;
-
-                        return (
-                          <div className="space-y-4 pt-4 border-t border-[#F5F5F5]">
-                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Compatible Outfits (from packed items)</h4>
-                            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-                              {compatibleOutfits.map(outfit => {
-                                const top = pieces.find(p => p.id === outfit.topId);
-                                const bottom = pieces.find(p => p.id === outfit.bottomId);
-                                return (
-                                  <button 
-                                    key={outfit.id}
-                                    onClick={() => onAddOutfit(event.id, outfit.id)}
-                                    className="flex-shrink-0 w-40 p-3 bg-white border border-[#E5E5E5] rounded-2xl text-left space-y-3 hover:border-[#1A1A1A] transition-all group"
-                                  >
-                                    <div className="flex -space-x-2">
-                                      <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={8} />
-                                      <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={8} />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <p className="text-[10px] font-bold line-clamp-1">{top?.title} + {bottom?.title}</p>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[9px] text-[#A1A1A1] uppercase tracking-wider">{outfit.weather}</span>
-                                        <Plus size={12} className="text-[#1A1A1A] opacity-0 group-hover:opacity-100 transition-opacity" />
-                                      </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      <div className="pt-4 border-t border-[#E5E5E5] flex justify-between items-center">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
-                          {ownedPieces.length - event.packedPieceIds.length} items remaining in closet
-                        </div>
-                        <button 
-                          onClick={() => onSetActiveEvent(null)}
-                          className="text-[10px] font-bold uppercase tracking-widest text-[#1A1A1A] underline underline-offset-4"
-                        >
-                          Close Details
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          );
-        })}
-      </div>
-
-      {events.length === 0 && (
-        <div className="py-20 text-center space-y-4">
-          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-[#A1A1A1]">
-            <Map size={24} strokeWidth={1.5} />
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm font-medium">No events planned</p>
-            <p className="text-xs text-[#A1A1A1]">Create an event to start packing your wardrobe.</p>
-          </div>
-          <button 
-            onClick={() => setShowAddEvent(true)}
-            className="text-xs font-bold uppercase tracking-widest text-[#1A1A1A] underline underline-offset-4"
-          >
-            Add your first event
-          </button>
-        </div>
-      )}
-
-      {showAddEvent && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-[32px] p-8 w-full max-w-sm shadow-2xl space-y-6"
-          >
-            <div className="space-y-2">
-              <h3 className="text-xl font-bold">New Event</h3>
-              <p className="text-sm text-[#A1A1A1]">What's the occasion?</p>
-            </div>
-            <input 
-              autoFocus
-              type="text"
-              placeholder="e.g. Paris Fashion Week"
-              value={newEventName}
-              onChange={(e) => setNewEventName(e.target.value)}
-              className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm outline-none focus:ring-2 ring-[#1A1A1A]/5 transition-all"
-            />
-            <div className="flex gap-3 pt-2">
-              <button 
-                onClick={() => { setShowAddEvent(false); setNewEventName(''); }}
-                className="flex-1 py-4 text-sm font-bold uppercase tracking-widest text-[#A1A1A1] hover:text-[#1A1A1A] transition-colors"
-              >
-                Cancel
-              </button>
               <button 
                 onClick={() => {
-                  if (newEventName.trim()) {
-                    onAddEvent(newEventName);
-                    setNewEventName('');
-                    setShowAddEvent(false);
-                  }
+                  onAddEvent(newEventName, startDate, endDate);
+                  setNewEventName('');
+                  setStartDate('');
+                  setEndDate('');
+                  setShowAddEvent(false);
                 }}
-                className="flex-1 py-4 bg-[#1A1A1A] text-white rounded-2xl text-sm font-bold uppercase tracking-widest hover:bg-black transition-colors"
+                disabled={!newEventName || !startDate || !endDate}
+                className="w-full bg-[#1A1A1A] text-white py-4 rounded-2xl font-bold uppercase tracking-widest disabled:opacity-50 transition-opacity"
               >
-                Create
+                Create Event
               </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+}
+
+function EventDetailView({ 
+  event, 
+  pieces, 
+  outfits, 
+  onClose, 
+  onUpdatePacked, 
+  onUpdateAssignment,
+  onAddOutfit
+}: { 
+  event: Event, 
+  pieces: Piece[], 
+  outfits: Outfit[], 
+  onClose: () => void,
+  onUpdatePacked: (eid: string, pids: string[]) => void,
+  onUpdateAssignment: (eid: string, date: string, oid: string | undefined) => void,
+  onAddOutfit: (o: Omit<Outfit, 'id'>) => void
+}) {
+  const [tab, setTab] = useState<'Itinerary' | 'Packing'>('Itinerary');
+  const [selectingOutfitForDate, setSelectingOutfitForDate] = useState<string | null>(null);
+  const [showQuickBuilder, setShowQuickBuilder] = useState(false);
+
+  const possibleOutfits = useMemo(() => {
+    return outfits.filter(outfit => {
+      const piecesNeeded = [outfit.topId, outfit.bottomId, outfit.outerId, outfit.accessoryId].filter(Boolean) as string[];
+      return piecesNeeded.every(id => event.packedPieceIds.includes(id));
+    });
+  }, [outfits, event.packedPieceIds]);
+
+  const togglePacked = (pid: string) => {
+    const newPacked = event.packedPieceIds.includes(pid)
+      ? event.packedPieceIds.filter(id => id !== pid)
+      : [...event.packedPieceIds, pid];
+    onUpdatePacked(event.id, newPacked);
+  };
+
+  return (
+    <motion.div 
+      initial={{ x: '100%' }}
+      animate={{ x: 0 }}
+      exit={{ x: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="fixed inset-0 z-[80] bg-[#FDFDFD] flex flex-col"
+    >
+      <header className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center gap-4">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold serif italic">{event.name}</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+              {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+        <div className="flex bg-gray-100 p-1 rounded-xl">
+          <button 
+            onClick={() => setTab('Itinerary')}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Itinerary' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+          >
+            Itinerary
+          </button>
+          <button 
+            onClick={() => setTab('Packing')}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Packing' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+          >
+            Packing
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-y-auto p-6 max-w-2xl mx-auto w-full">
+        <AnimatePresence mode="wait">
+          {tab === 'Itinerary' ? (
+            <motion.div 
+              key="itinerary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {event.dayAssignments?.map((day) => {
+                const outfit = outfits.find(o => o.id === day.outfitId);
+                const dateObj = new Date(day.date);
+                
+                return (
+                  <div key={day.date} className="flex gap-6 group">
+                    <div className="w-12 text-center space-y-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+                        {dateObj.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </span>
+                      <div className="text-xl font-bold serif">{dateObj.getDate()}</div>
+                    </div>
+                    
+                    <div className="flex-1">
+                      {outfit ? (
+                        <div className="bg-white border border-[#E5E5E5] rounded-3xl p-4 flex items-center justify-between group/outfit hover:border-[#1A1A1A] transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className="flex -space-x-2">
+                              <PieceIcon category={pieces.find(p => p.id === outfit.topId)?.category || 'Other'} color={pieces.find(p => p.id === outfit.topId)?.hex} size={6} />
+                              <PieceIcon category={pieces.find(p => p.id === outfit.bottomId)?.category || 'Other'} color={pieces.find(p => p.id === outfit.bottomId)?.hex} size={6} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold">{pieces.find(p => p.id === outfit.topId)?.title} + {pieces.find(p => p.id === outfit.bottomId)?.title}</p>
+                              <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion?.join(', ')}</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => onUpdateAssignment(event.id, day.date, undefined)}
+                            className="p-2 text-[#A1A1A1] hover:text-red-500 opacity-0 group-hover/outfit:opacity-100 transition-all"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          onClick={() => setSelectingOutfitForDate(day.date)}
+                          className="w-full py-6 border-2 border-dashed border-[#E5E5E5] rounded-3xl text-[#A1A1A1] hover:border-[#1A1A1A] hover:text-[#1A1A1A] transition-all flex items-center justify-center gap-2"
+                        >
+                          <Plus size={16} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Assign Outfit</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="packing"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-8"
+            >
+              <div className="bg-[#1A1A1A] text-white p-6 rounded-[32px] flex justify-between items-center">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-medium serif italic">Packing List</h3>
+                  <div className="flex items-center gap-3">
+                    <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                      {event.packedPieceIds.length} items selected
+                    </p>
+                    <div className="w-1 h-1 rounded-full bg-white/20" />
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                      {possibleOutfits.length} possible outfits
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowQuickBuilder(true)}
+                  className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-colors group"
+                  title="Create New Outfit from Packed Items"
+                >
+                  <Sparkles size={20} className="group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {(['Top', 'Bottom', 'Outer', 'Shoes', 'Accessory'] as const).map(type => {
+                  const typePieces = pieces.filter(p => p.type === type && p.status === 'Owned');
+                  if (typePieces.length === 0) return null;
+                  
+                  const allTypePacked = typePieces.every(p => event.packedPieceIds.includes(p.id));
+                  
+                  const toggleAllType = () => {
+                    let newPacked: string[];
+                    if (allTypePacked) {
+                      // Deselect all of this type
+                      newPacked = event.packedPieceIds.filter(id => !typePieces.some(p => p.id === id));
+                    } else {
+                      // Select all of this type
+                      const otherTypePacked = event.packedPieceIds.filter(id => !typePieces.some(p => p.id === id));
+                      newPacked = [...otherTypePacked, ...typePieces.map(p => p.id)];
+                    }
+                    onUpdatePacked(event.id, newPacked);
+                  };
+
+                  return (
+                    <div key={type} className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A1A1A1]">{type}s</h4>
+                        <button 
+                          onClick={toggleAllType}
+                          className="text-[10px] font-bold uppercase tracking-widest text-[#1A1A1A] hover:opacity-60 transition-opacity"
+                        >
+                          {allTypePacked ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {typePieces.map(piece => {
+                          const isPacked = event.packedPieceIds.includes(piece.id);
+                          return (
+                            <button 
+                              key={piece.id}
+                              onClick={() => togglePacked(piece.id)}
+                              className={`flex items-center gap-3 p-3 rounded-2xl border transition-all text-left ${isPacked ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white' : 'bg-white border-[#E5E5E5] text-[#1A1A1A] hover:border-[#1A1A1A]'}`}
+                            >
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${isPacked ? 'bg-white border-white text-[#1A1A1A]' : 'border-[#E5E5E5]'}`}>
+                                {isPacked && <Check size={12} strokeWidth={3} />}
+                              </div>
+                              <span className="text-xs font-medium truncate">{piece.title}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Outfit Selector Modal */}
+      <AnimatePresence>
+        {selectingOutfitForDate && (
+          <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectingOutfitForDate(null)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              className="relative w-full max-w-md bg-white rounded-[40px] p-8 shadow-2xl flex flex-col max-h-[80vh]"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-medium serif italic">Select Outfit</h2>
+                <button onClick={() => setSelectingOutfitForDate(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto space-y-3 pr-2 no-scrollbar">
+                {outfits.map(outfit => {
+                  const top = pieces.find(p => p.id === outfit.topId);
+                  const bottom = pieces.find(p => p.id === outfit.bottomId);
+                  
+                  return (
+                    <button 
+                      key={outfit.id}
+                      onClick={() => {
+                        onUpdateAssignment(event.id, selectingOutfitForDate, outfit.id);
+                        setSelectingOutfitForDate(null);
+                      }}
+                      className="w-full p-4 bg-white border border-[#E5E5E5] rounded-3xl flex items-center gap-4 hover:border-[#1A1A1A] transition-all"
+                    >
+                      <div className="flex -space-x-2">
+                        <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={8} />
+                        <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={8} />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-bold">{top?.title} + {bottom?.title}</p>
+                        <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion.join(', ')}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Outfit Builder Modal */}
+      <AnimatePresence>
+        {showQuickBuilder && (
+          <QuickOutfitBuilder 
+            pieces={pieces.filter(p => event.packedPieceIds.includes(p.id))}
+            onClose={() => setShowQuickBuilder(false)}
+            onSave={(o) => {
+              onAddOutfit(o);
+              setShowQuickBuilder(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function QuickOutfitBuilder({ pieces, onClose, onSave }: { pieces: Piece[], onClose: () => void, onSave: (o: Omit<Outfit, 'id'>) => void }) {
+  const [topId, setTopId] = useState('');
+  const [bottomId, setBottomId] = useState('');
+  const [outerId, setOuterId] = useState('');
+  const [accessoryId, setAccessoryId] = useState('');
+  const [occasion, setOccasion] = useState<string[]>(['Casual']);
+  const [weather, setWeather] = useState<Weather>('Cool');
+
+  const tops = pieces.filter(p => p.type === 'Top');
+  const bottoms = pieces.filter(p => p.type === 'Bottom');
+  const outers = pieces.filter(p => p.type === 'Outer');
+  const accessories = pieces.filter(p => p.type === 'Accessory');
+
+  const handleSave = () => {
+    if (!topId || !bottomId) return;
+    onSave({
+      topId,
+      bottomId,
+      outerId: outerId || undefined,
+      accessoryId: accessoryId || undefined,
+      rating: 0,
+      occasion,
+      weather
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+      />
+      <motion.div 
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        className="relative w-full max-w-lg bg-white rounded-[40px] p-8 shadow-2xl flex flex-col max-h-[90vh]"
+      >
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-2xl font-medium serif italic">Quick Outfit Builder</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Using packed items only</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto space-y-8 pr-2 no-scrollbar">
+          {/* Top Selection */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Select Top *</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {tops.map(p => (
+                <button 
+                  key={p.id}
+                  onClick={() => setTopId(p.id)}
+                  className={`p-3 rounded-2xl border text-center transition-all ${topId === p.id ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white' : 'bg-white border-[#E5E5E5] hover:border-[#1A1A1A]'}`}
+                >
+                  <div className="flex justify-center mb-2">
+                    <PieceIcon category={p.category} color={p.hex} size={6} />
+                  </div>
+                  <span className="text-[10px] font-medium block truncate">{p.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Bottom Selection */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Select Bottom *</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {bottoms.map(p => (
+                <button 
+                  key={p.id}
+                  onClick={() => setBottomId(p.id)}
+                  className={`p-3 rounded-2xl border text-center transition-all ${bottomId === p.id ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white' : 'bg-white border-[#E5E5E5] hover:border-[#1A1A1A]'}`}
+                >
+                  <div className="flex justify-center mb-2">
+                    <PieceIcon category={p.category} color={p.hex} size={6} />
+                  </div>
+                  <span className="text-[10px] font-medium block truncate">{p.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Optional Layers */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Outer (Optional)</h3>
+              <select 
+                value={outerId} 
+                onChange={(e) => setOuterId(e.target.value)}
+                className="w-full p-3 bg-gray-50 border border-[#E5E5E5] rounded-2xl text-xs"
+              >
+                <option value="">None</option>
+                {outers.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Accessory (Optional)</h3>
+              <select 
+                value={accessoryId} 
+                onChange={(e) => setAccessoryId(e.target.value)}
+                className="w-full p-3 bg-gray-50 border border-[#E5E5E5] rounded-2xl text-xs"
+              >
+                <option value="">None</option>
+                {accessories.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Occasion & Weather */}
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Occasion</h3>
+              <div className="flex flex-wrap gap-2">
+                {['Casual', 'Smart Casual', 'Formal', 'Traditional'].map(occ => (
+                  <button
+                    key={occ}
+                    onClick={() => {
+                      if (occasion.includes(occ)) setOccasion(occasion.filter(o => o !== occ));
+                      else setOccasion([...occasion, occ]);
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${occasion.includes(occ) ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white' : 'bg-white border-[#E5E5E5]'}`}
+                  >
+                    {occ}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Weather</h3>
+              <div className="flex gap-2">
+                {(['Warm', 'Cool', 'Cold'] as Weather[]).map(w => (
+                  <button
+                    key={w}
+                    onClick={() => setWeather(w)}
+                    className={`flex-1 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${weather === w ? 'bg-[#1A1A1A] border-[#1A1A1A] text-white' : 'bg-white border-[#E5E5E5]'}`}
+                  >
+                    {w}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-8 mt-auto">
+          <button 
+            onClick={handleSave}
+            disabled={!topId || !bottomId}
+            className="w-full py-4 bg-[#1A1A1A] text-white rounded-3xl text-sm font-bold uppercase tracking-widest hover:bg-black transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <Check size={18} />
+            Save Outfit to Wardrobe
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -1644,7 +2056,9 @@ function PieceModal({ piece, outfits, onClose, onEdit, onDelete, onBuildOutfit }
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full border-4 border-gray-50 shadow-inner" style={{ backgroundColor: piece.hex }} />
+            <div className="w-24 h-24 rounded-full border-4 border-gray-50 shadow-inner flex items-center justify-center overflow-hidden" style={{ backgroundColor: piece.hex }}>
+              <PieceIcon category={piece.category} color={piece.hex} size={32} className="opacity-50" />
+            </div>
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: piece.hex }} />
@@ -1769,7 +2183,7 @@ function OutfitModal({ outfit, pieces, onClose, onUpdateRating, onUpdateNotes }:
               <div className="space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">Occasion</span>
                 <div className="flex flex-wrap gap-1">
-                  {outfit.occasion.map(occ => (
+                  {outfit.occasion?.map(occ => (
                     <span key={occ} className="text-[9px] font-bold uppercase bg-gray-100 px-2 py-0.5 rounded-full">{occ}</span>
                   ))}
                 </div>
