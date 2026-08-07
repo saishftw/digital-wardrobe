@@ -76,7 +76,9 @@ import {
   TrousersIcon, 
   ShortsIcon, 
   ShoesIcon, 
-  OtherIcon 
+  OtherIcon,
+  SOURCE_OF_TRUTH_PIECES,
+  SOURCE_OF_TRUTH_OUTFITS
 } from './constants';
 
 type View = 'Wardrobe' | 'Outfits' | 'Builder' | 'Events' | 'Profile' | 'Settings';
@@ -172,10 +174,13 @@ export default function App() {
             setOutfits(cloudData.outfits);
             setEvents(cloudData.events);
           } else {
-            // Cloud is empty, start fresh
-            setPieces([]);
-            setOutfits([]);
-            setEvents([]);
+            // Cloud is empty, load local/sample data
+            const localP = storageService.getPieces();
+            const localO = storageService.getOutfits();
+            const localE = storageService.getEvents();
+            setPieces(localP);
+            setOutfits(localO);
+            setEvents(localE);
           }
           
           // Subscribe to real-time updates
@@ -192,11 +197,13 @@ export default function App() {
           setIsSyncing(false);
         }
       } else {
-        // Empty until signin
-        setPieces([]);
-        setOutfits([]);
-        setEvents([]);
-        storageService.clearAllData(); // Clear local storage on logout
+        // When not signed in, load local/sample wardrobe
+        const localP = storageService.getPieces();
+        const localO = storageService.getOutfits();
+        const localE = storageService.getEvents();
+        setPieces(localP);
+        setOutfits(localO);
+        setEvents(localE);
         if (unsubscribeCloud) {
           unsubscribeCloud();
           unsubscribeCloud = null;
@@ -208,6 +215,29 @@ export default function App() {
       if (unsubscribeCloud) unsubscribeCloud();
     };
   }, []);
+
+  const handleLoadSampleData = () => {
+    const defaultPieces = SOURCE_OF_TRUTH_PIECES;
+    const defaultOutfits = SOURCE_OF_TRUTH_OUTFITS;
+    const defaultEvents: Event[] = [
+      { 
+        id: 'e1', 
+        name: 'Japan Trip', 
+        startDate: '2026-04-11', 
+        endDate: '2026-04-25', 
+        packedPieceIds: [], 
+        dayAssignments: Array.from({ length: 15 }, (_, i) => ({
+          date: `2026-04-${11 + i}`
+        }))
+      }
+    ];
+    setPieces(defaultPieces);
+    setOutfits(defaultOutfits);
+    setEvents(defaultEvents);
+    storageService.savePieces(defaultPieces);
+    storageService.saveOutfits(defaultOutfits);
+    storageService.saveEvents(defaultEvents);
+  };
 
   const handleLogin = async () => {
     try {
@@ -487,50 +517,56 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-[#1A1A1A] font-sans selection:bg-[#1A1A1A] selection:text-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#E5E5E5] px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#1A1A1A] rounded-xl flex items-center justify-center shadow-sm overflow-hidden">
+      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-md border-b border-[#E5E5E5] px-3 sm:px-6 py-2.5 sm:py-4 flex justify-between items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 bg-[#1A1A1A] rounded-xl flex items-center justify-center shadow-sm overflow-hidden shrink-0">
             <WardrobeLogo size={18} className="text-white" />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight italic serif">Digital Wardrobe</h1>
+          <h1 className="text-base sm:text-xl font-semibold tracking-tight italic serif truncate">Digital Wardrobe</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button 
             onClick={() => handleOpenAIStylist()}
-            className="p-2 sm:px-3.5 sm:py-1.5 rounded-full bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-indigo-200 hover:scale-105 transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider border border-indigo-700/50 shadow-sm"
+            className="p-2 sm:px-3.5 sm:py-1.5 rounded-full bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-indigo-200 hover:scale-105 transition-all flex items-center justify-center gap-1.5 border border-indigo-700/50 shadow-sm shrink-0"
+            title="Open AI Sartorial Stylist"
           >
-            <Sparkles size={15} className="text-indigo-300" />
-            <span className="hidden sm:inline">AI Stylist</span>
+            <Sparkles size={15} className="text-indigo-300 shrink-0" />
+            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider">AI Stylist</span>
           </button>
           {user && (
-            <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+            <div 
+              className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1] bg-emerald-50/80 border border-emerald-100/80 p-2 sm:px-2.5 sm:py-1 rounded-full shrink-0"
+              title={isSyncing ? "Syncing with Cloud Database..." : "Cloud Database Synced"}
+            >
               {isSyncing ? (
-                <RefreshCw size={12} className="animate-spin" />
+                <RefreshCw size={13} className="animate-spin text-indigo-600 shrink-0" />
               ) : (
-                <Cloud size={12} className="text-emerald-500" />
+                <Cloud size={13} className="text-emerald-600 shrink-0" />
               )}
-              <span className="hidden sm:inline">Synced</span>
+              <span className="hidden sm:inline text-[9px] text-emerald-800">Synced</span>
             </div>
           )}
           {(view === 'Wardrobe' || view === 'Outfits') && (
             <button 
               onClick={() => view === 'Wardrobe' ? setShowAddPiece(true) : setView('Builder')}
-              className="p-2 rounded-full bg-[#1A1A1A] text-white hover:scale-105 transition-transform"
+              className="p-1.5 sm:p-2 rounded-full bg-[#1A1A1A] text-white hover:scale-105 transition-transform shrink-0"
+              title="Add New Piece or Outfit"
             >
-              <Plus size={20} />
+              <Plus size={18} className="sm:w-5 sm:h-5" />
             </button>
           )}
           <button 
             onClick={() => setView('Settings')}
-            className={`p-2 rounded-full transition-all ${view === 'Settings' ? 'bg-[#1A1A1A] text-white' : 'text-[#A1A1A1] hover:bg-gray-100'}`}
+            className={`p-1.5 sm:p-2 rounded-full transition-all shrink-0 ${view === 'Settings' ? 'bg-[#1A1A1A] text-white' : 'text-[#A1A1A1] hover:bg-gray-100'}`}
+            title="Settings & Cloud Sync"
           >
-            <Settings size={20} />
+            <Settings size={18} className="sm:w-5 sm:h-5" />
           </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="pb-24 px-6 pt-6 max-w-2xl mx-auto">
+      <main className="pb-28 px-3.5 sm:px-6 pt-4 sm:pt-6 max-w-2xl mx-auto">
         <AnimatePresence mode="wait">
           {view === 'Wardrobe' && (
             <WardrobeView 
@@ -538,6 +574,7 @@ export default function App() {
               onViewPiece={setViewingPiece}
               onPackPiece={setPackingPieceId}
               onToggleStatus={togglePieceStatus}
+              onLoadSampleData={handleLoadSampleData}
             />
           )}
           {view === 'Outfits' && (
@@ -589,6 +626,7 @@ export default function App() {
               onExport={handleExport}
               onImport={handleImport}
               onReset={() => setConfirmReset(true)}
+              onLoadSampleData={handleLoadSampleData}
               onSyncNow={async () => {
                 setIsSyncing(true);
                 try {
@@ -796,7 +834,19 @@ function NavButton({ active, onClick, icon, label }: { active: boolean, onClick:
   );
 }
 
-function WardrobeView({ pieces, onViewPiece, onPackPiece, onToggleStatus }: { pieces: Piece[], onViewPiece: (p: Piece) => void, onPackPiece: (id: string) => void, onToggleStatus: (id: string) => void }) {
+function WardrobeView({ 
+  pieces, 
+  onViewPiece, 
+  onPackPiece, 
+  onToggleStatus,
+  onLoadSampleData
+}: { 
+  pieces: Piece[], 
+  onViewPiece: (p: Piece) => void, 
+  onPackPiece: (id: string) => void, 
+  onToggleStatus: (id: string) => void,
+  onLoadSampleData?: () => void
+}) {
   const [filter, setFilter] = useState<PieceType | 'All'>('All');
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'type' | 'newest' | 'title'>('newest');
@@ -941,7 +991,28 @@ function WardrobeView({ pieces, onViewPiece, onPackPiece, onToggleStatus }: { pi
         ))}
       </div>
       
-      {filteredPieces.length === 0 && (
+      {pieces.length === 0 ? (
+        <div className="py-16 text-center space-y-6 bg-indigo-50/50 border border-indigo-100 rounded-[32px] p-8">
+          <div className="w-16 h-16 bg-indigo-100/80 rounded-2xl flex items-center justify-center mx-auto text-indigo-600">
+            <Shirt size={28} />
+          </div>
+          <div className="space-y-2 max-w-sm mx-auto">
+            <h3 className="text-lg font-bold text-indigo-950">Your Wardrobe is Empty</h3>
+            <p className="text-xs text-indigo-800/80 leading-relaxed">
+              Load our curated collection of 30+ clothing pieces (pleated trousers, linen shirts, corduroys, bomber jackets, sneakers, ties) and outfits to test the AI Stylist right away.
+            </p>
+          </div>
+          {onLoadSampleData && (
+            <button 
+              onClick={onLoadSampleData}
+              className="px-6 py-3.5 bg-indigo-600 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 inline-flex items-center gap-2"
+            >
+              <Sparkles size={16} />
+              Load Sample Dummy Wardrobe
+            </button>
+          )}
+        </div>
+      ) : filteredPieces.length === 0 ? (
         <div className="py-20 text-center space-y-4">
           <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-[#A1A1A1]">
             <Search size={24} strokeWidth={1.5} />
@@ -957,7 +1028,7 @@ function WardrobeView({ pieces, onViewPiece, onPackPiece, onToggleStatus }: { pi
             Clear all filters
           </button>
         </div>
-      )}
+      ) : null}
     </motion.div>
   );
 }
@@ -1662,36 +1733,37 @@ function EventDetailView({
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
       className="fixed inset-0 z-[80] bg-[#FDFDFD] flex flex-col"
     >
-      <header className="px-6 py-4 border-b border-[#E5E5E5] flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ArrowLeft size={24} />
+      <header className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-[#E5E5E5] flex flex-wrap items-center justify-between gap-2 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <button onClick={onClose} className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-full transition-colors shrink-0">
+            <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
           </button>
-          <div>
-            <h2 className="text-xl font-bold serif italic">{event.name}</h2>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-xl font-bold serif italic truncate">{event.name}</h2>
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1] truncate">
               {new Date(event.startDate).toLocaleDateString()} - {new Date(event.endDate).toLocaleDateString()}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button 
             onClick={() => onOpenAIStylist(event)}
-            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 text-indigo-200 text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1.5 border border-indigo-800/60 shadow-sm"
+            className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 text-indigo-200 text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-1.5 border border-indigo-800/60 shadow-sm shrink-0"
+            title="Open AI Stylist"
           >
-            <Sparkles size={14} className="text-indigo-300" />
-            <span>AI Stylist</span>
+            <Sparkles size={14} className="text-indigo-300 shrink-0" />
+            <span className="hidden sm:inline">AI Stylist</span>
           </button>
-          <div className="flex bg-gray-100 p-1 rounded-xl">
+          <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
             <button 
               onClick={() => setTab('Itinerary')}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Itinerary' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+              className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Itinerary' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
             >
               Itinerary
             </button>
             <button 
               onClick={() => setTab('Packing')}
-              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Packing' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+              className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Packing' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
             >
               Packing
             </button>
@@ -2131,7 +2203,8 @@ function SettingsView({
   onExport, 
   onImport, 
   onReset,
-  onSyncNow
+  onSyncNow,
+  onLoadSampleData
 }: { 
   lastExported: number | null, 
   user: User | null,
@@ -2141,7 +2214,8 @@ function SettingsView({
   onExport: () => void, 
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, 
   onReset: () => void,
-  onSyncNow: () => void
+  onSyncNow: () => void,
+  onLoadSampleData: () => void
 }) {
   const [showDebug, setShowDebug] = useState(false);
   const dbId = "ai-studio-e0594e10-7a1b-4dee-b19f-a001a0aab789";
@@ -2267,6 +2341,19 @@ function SettingsView({
           </div>
 
           <div className="space-y-4">
+            <div className="space-y-3 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
+                <span>Sample Data</span>
+              </div>
+              <button 
+                onClick={onLoadSampleData}
+                className="w-full flex items-center justify-center gap-2 py-4 bg-indigo-600 text-white rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200"
+              >
+                <Sparkles size={16} />
+                Load Sample Dummy Wardrobe (30+ Items)
+              </button>
+            </div>
+
             <div className="space-y-3 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
                 <span>Backup & Restore</span>

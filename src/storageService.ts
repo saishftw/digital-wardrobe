@@ -111,9 +111,14 @@ export const storageService = {
       let pieces: Piece[] = [];
       
       if (!stored) {
-        return [];
+        pieces = SOURCE_OF_TRUTH_PIECES;
+        localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
       } else {
         pieces = JSON.parse(stored);
+        if (pieces.length === 0) {
+          pieces = SOURCE_OF_TRUTH_PIECES;
+          localStorage.setItem(STORAGE_KEYS.PIECES, JSON.stringify(pieces));
+        }
       }
 
       // Migration: Ensure all pieces have a category
@@ -137,7 +142,7 @@ export const storageService = {
       return migratedPieces;
     } catch (e) {
       console.error('Failed to load pieces', e);
-      return INITIAL_PIECES;
+      return SOURCE_OF_TRUTH_PIECES;
     }
   },
 
@@ -161,9 +166,14 @@ export const storageService = {
       let outfits: Outfit[] = [];
       
       if (!stored) {
-        return [];
+        outfits = SOURCE_OF_TRUTH_OUTFITS;
+        localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
       } else {
         outfits = JSON.parse(stored);
+        if (outfits.length === 0) {
+          outfits = SOURCE_OF_TRUTH_OUTFITS;
+          localStorage.setItem(STORAGE_KEYS.OUTFITS, JSON.stringify(outfits));
+        }
       }
 
       // Migration: Ensure all outfits have required fields
