@@ -1,4 +1,4 @@
-import { Piece, Outfit, Event } from './types';
+import { Piece, Outfit, Event, UserProfile } from './types';
 import { INITIAL_PIECES, INITIAL_OUTFITS, SOURCE_OF_TRUTH_PIECES, SOURCE_OF_TRUTH_OUTFITS } from './constants';
 import { db, auth } from './firebase';
 import { 
@@ -16,8 +16,29 @@ const STORAGE_KEYS = {
   PIECES: 'wardrobe_pieces',
   OUTFITS: 'wardrobe_outfits',
   EVENTS: 'wardrobe_events',
+  USER_PROFILE: 'wardrobe_user_profile',
   LAST_EXPORTED: 'wardrobe_last_exported',
   SYNC_STATUS: 'wardrobe_sync_status',
+};
+
+export const DEFAULT_USER_PROFILE: UserProfile = {
+  skinTone: 'Medium Warm',
+  undertone: 'Warm',
+  contrastLevel: 'Medium Contrast',
+  seasonalColor: 'Autumn',
+  faceShape: 'Round',
+  jawlineDefinition: 'Soft / Curved',
+  neckLength: 'Average',
+  height: "181 cm (~5'11\")",
+  heightCategory: 'Tall',
+  bodyType: 'Slim / Midsection Carry ("Skinny Fat")',
+  bodyShape: 'Rectangle',
+  torsoToLegRatio: 'Balanced Proportions',
+  shoulderSlope: 'Square / Broad',
+  hairColor: 'Dark Brown',
+  eyeColor: 'Brown',
+  styleAesthetic: ['Smart Casual', 'Minimalist', 'Old Money'],
+  notes: 'Requires clean flat-front trousers with comfortable rise (strictly avoid elastic bunching or puffy waistlines), structured unbuttoned layers to smooth the midsection, and open collars to lengthen round face symmetry.'
 };
 
 const sanitize = (obj: any): any => {
@@ -89,8 +110,8 @@ export const storageService = {
       const stored = localStorage.getItem(STORAGE_KEYS.PIECES);
       let pieces: Piece[] = [];
       
-      if (!stored || JSON.parse(stored).length === 0) {
-        pieces = INITIAL_PIECES;
+      if (!stored) {
+        return [];
       } else {
         pieces = JSON.parse(stored);
       }
@@ -139,8 +160,8 @@ export const storageService = {
       const stored = localStorage.getItem(STORAGE_KEYS.OUTFITS);
       let outfits: Outfit[] = [];
       
-      if (!stored || JSON.parse(stored).length === 0) {
-        outfits = INITIAL_OUTFITS;
+      if (!stored) {
+        return [];
       } else {
         outfits = JSON.parse(stored);
       }
@@ -183,23 +204,8 @@ export const storageService = {
       const stored = localStorage.getItem(STORAGE_KEYS.EVENTS);
       let events: Event[] = [];
       
-      if (!stored || JSON.parse(stored).length === 0) {
-        events = [
-          { 
-            id: 'e1', 
-            name: 'Japan Trip', 
-            startDate: '2026-04-11', 
-            endDate: '2026-04-25', 
-            packedPieceIds: [], 
-            dayAssignments: [
-              { date: '2026-04-11' }, { date: '2026-04-12' }, { date: '2026-04-13' },
-              { date: '2026-04-14' }, { date: '2026-04-15' }, { date: '2026-04-16' },
-              { date: '2026-04-17' }, { date: '2026-04-18' }, { date: '2026-04-19' },
-              { date: '2026-04-20' }, { date: '2026-04-21' }, { date: '2026-04-22' },
-              { date: '2026-04-23' }, { date: '2026-04-24' }, { date: '2026-04-25' }
-            ] 
-          }
-        ];
+      if (!stored) {
+        return [];
       } else {
         events = JSON.parse(stored);
       }
@@ -253,6 +259,30 @@ export const storageService = {
         setDoc(doc(db, `users/${userId}/events`, event.id), sanitize(event)).catch(err => {
           console.error('Cloud sync error (event):', err);
         });
+      });
+    }
+  },
+
+  getUserProfile: (): UserProfile => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+      if (stored) {
+        return { ...DEFAULT_USER_PROFILE, ...JSON.parse(stored) };
+      }
+      return DEFAULT_USER_PROFILE;
+    } catch (e) {
+      console.error('Failed to load user profile', e);
+      return DEFAULT_USER_PROFILE;
+    }
+  },
+
+  saveUserProfile: (profile: UserProfile) => {
+    localStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+
+    if (auth.currentUser) {
+      const userId = auth.currentUser.uid;
+      setDoc(doc(db, `users/${userId}/profile`, 'main'), sanitize(profile)).catch(err => {
+        console.error('Cloud sync error (profile):', err);
       });
     }
   },

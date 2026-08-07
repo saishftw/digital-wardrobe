@@ -49,7 +49,8 @@ import {
   CloudOff,
   LogIn,
   LogOut,
-  RefreshCw
+  RefreshCw,
+  User as UserIcon
 } from 'lucide-react';
 import { 
   Piece, 
@@ -59,11 +60,14 @@ import {
   PieceType, 
   PieceStatus, 
   PieceCategory, 
-  Weather 
+  Weather,
+  UserProfile 
 } from './types';
 import { storageService } from './storageService';
 import { auth, googleProvider, db } from './firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { ProfileView } from './components/ProfileView';
+import { AIStylistModal } from './components/AIStylistModal';
 import { 
   WardrobeLogo,
   CrewNeckIcon, 
@@ -75,7 +79,7 @@ import {
   OtherIcon 
 } from './constants';
 
-type View = 'Wardrobe' | 'Outfits' | 'Builder' | 'Events' | 'Settings';
+type View = 'Wardrobe' | 'Outfits' | 'Builder' | 'Events' | 'Profile' | 'Settings';
 
 const CATEGORY_ICONS: Record<PieceCategory, any> = {
   'Crew-neck': CrewNeckIcon,
@@ -121,7 +125,12 @@ export default function App() {
   const [pieces, setPieces] = useState<Piece[]>(() => storageService.getPieces());
   const [outfits, setOutfits] = useState<Outfit[]>(() => storageService.getOutfits());
   const [events, setEvents] = useState<Event[]>(() => storageService.getEvents());
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => storageService.getUserProfile());
   const [lastExported, setLastExported] = useState<number | null>(() => storageService.getLastExported());
+  
+  // AI Stylist Modal State
+  const [showAIStylistModal, setShowAIStylistModal] = useState(false);
+  const [aiStylistTargetEvent, setAiStylistTargetEvent] = useState<Event | undefined>(undefined);
   
   // Auth & Sync State
   const [user, setUser] = useState<User | null>(null);
@@ -158,15 +167,15 @@ export default function App() {
         try {
           let cloudData = await storageService.syncFromCloud();
           
-          // If cloud is empty, initialize with source of truth
-          if (!cloudData || (cloudData.pieces.length === 0 && cloudData.outfits.length === 0)) {
-            cloudData = await storageService.initializeWithSourceOfTruth();
-          }
-
-          if (cloudData) {
+          if (cloudData && (cloudData.pieces.length > 0 || cloudData.outfits.length > 0)) {
             setPieces(cloudData.pieces);
             setOutfits(cloudData.outfits);
             setEvents(cloudData.events);
+          } else {
+            // Cloud is empty, start fresh
+            setPieces([]);
+            setOutfits([]);
+            setEvents([]);
           }
           
           // Subscribe to real-time updates
@@ -187,6 +196,7 @@ export default function App() {
         setPieces([]);
         setOutfits([]);
         setEvents([]);
+        storageService.clearAllData(); // Clear local storage on logout
         if (unsubscribeCloud) {
           unsubscribeCloud();
           unsubscribeCloud = null;
@@ -229,6 +239,45 @@ export default function App() {
     storageService.saveEvents(events);
   }, [events]);
 
+  useEffect(() => {
+    storageService.saveUserProfile(userProfile);
+  }, [userProfile]);
+
+  const handleSaveProfile = (newProfile: UserProfile) => {
+    setUserProfile(newProfile);
+    storageService.saveUserProfile(newProfile);
+  };
+
+  const handleOpenAIStylist = (evt?: Event) => {
+    setAiStylistTargetEvent(evt);
+    setShowAIStylistModal(true);
+  };
+
+  const handleSaveAISuggestedOutfit = (newOutfit: Omit<Outfit, 'id'>) => {
+    const outfit: Outfit = {
+      ...newOutfit,
+      id: `o_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+    };
+    setOutfits(prev => {
+      const updated = [...prev, outfit];
+      storageService.saveOutfits(updated);
+      return updated;
+    });
+  };
+
+  const handleAddAISuggestedWishlist = (newPiece: Omit<Piece, 'id' | 'createdAt'>) => {
+    const piece: Piece = {
+      ...newPiece,
+      id: `p_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      createdAt: Date.now()
+    };
+    setPieces(prev => {
+      const updated = [...prev, piece];
+      storageService.savePieces(updated);
+      return updated;
+    });
+  };
+
   const handleExport = () => {
     storageService.exportData();
     setLastExported(Date.now());
@@ -249,25 +298,6 @@ export default function App() {
   const handleReset = () => {
     storageService.clearAllData();
     window.location.reload();
-  };
-
-  const handleResetToSourceOfTruth = async () => {
-    if (confirm('This will replace all your current wardrobe data with the original Source of Truth from your Excel file. Continue?')) {
-      setIsSyncing(true);
-      try {
-        const data = await storageService.initializeWithSourceOfTruth(true);
-        if (data) {
-          setPieces(data.pieces);
-          setOutfits(data.outfits);
-          setEvents(data.events);
-        }
-      } catch (err) {
-        console.error('Reset error:', err);
-        setSyncError('Failed to reset to source of truth');
-      } finally {
-        setIsSyncing(false);
-      }
-    }
   };
 
   const executeImport = () => {
@@ -465,6 +495,13 @@ export default function App() {
           <h1 className="text-xl font-semibold tracking-tight italic serif">Digital Wardrobe</h1>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => handleOpenAIStylist()}
+            className="p-2 sm:px-3.5 sm:py-1.5 rounded-full bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-indigo-200 hover:scale-105 transition-all flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider border border-indigo-700/50 shadow-sm"
+          >
+            <Sparkles size={15} className="text-indigo-300" />
+            <span className="hidden sm:inline">AI Stylist</span>
+          </button>
           {user && (
             <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
               {isSyncing ? (
@@ -533,6 +570,15 @@ export default function App() {
               onDeleteEvent={deleteEvent}
             />
           )}
+          {view === 'Profile' && (
+            <ProfileView 
+              profile={userProfile}
+              onSaveProfile={handleSaveProfile}
+              onOpenAIStylist={handleOpenAIStylist}
+              piecesCount={pieces.filter(p => p.status === 'Owned').length}
+              outfitsCount={outfits.length}
+            />
+          )}
           {view === 'Settings' && (
             <SettingsView 
               lastExported={lastExported}
@@ -543,7 +589,6 @@ export default function App() {
               onExport={handleExport}
               onImport={handleImport}
               onReset={() => setConfirmReset(true)}
-              onResetToSourceOfTruth={handleResetToSourceOfTruth}
               onSyncNow={async () => {
                 setIsSyncing(true);
                 try {
@@ -566,6 +611,7 @@ export default function App() {
         <NavButton active={view === 'Outfits'} onClick={() => setView('Outfits')} icon={<LayoutGrid size={22} />} label="Outfits" />
         <NavButton active={view === 'Builder'} onClick={() => setView('Builder')} icon={<ArrowRightLeft size={22} />} label="Builder" />
         <NavButton active={view === 'Events'} onClick={() => setView('Events')} icon={<Calendar size={22} />} label="Events" />
+        <NavButton active={view === 'Profile'} onClick={() => setView('Profile')} icon={<UserIcon size={22} />} label="Profile" />
       </nav>
 
       {/* Event Detail View */}
@@ -579,11 +625,29 @@ export default function App() {
             onUpdatePacked={updateEventPackedPieces}
             onUpdateAssignment={updateEventDayAssignment}
             onAddOutfit={addOutfit}
+            onOpenAIStylist={handleOpenAIStylist}
           />
         )}
       </AnimatePresence>
 
       {/* Modals */}
+      <AnimatePresence>
+        {showAIStylistModal && (
+          <AIStylistModal 
+            userProfile={userProfile}
+            ownedPieces={pieces.filter(p => p.status === 'Owned')}
+            wishlistPieces={pieces.filter(p => p.status === 'Wishlist')}
+            existingOutfits={outfits}
+            event={aiStylistTargetEvent}
+            sourceTab={view}
+            onClose={() => setShowAIStylistModal(false)}
+            onSaveOutfit={handleSaveAISuggestedOutfit}
+            onAddToWishlist={handleAddAISuggestedWishlist}
+            onAssignOutfitToEventDay={(eid, date, oid) => updateEventDayAssignment(eid, date, oid)}
+          />
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {(showAddPiece || editingPiece) && (
           <AddPieceModal 
@@ -1547,7 +1611,8 @@ function EventDetailView({
   onClose, 
   onUpdatePacked, 
   onUpdateAssignment,
-  onAddOutfit
+  onAddOutfit,
+  onOpenAIStylist
 }: { 
   event: Event, 
   pieces: Piece[], 
@@ -1555,24 +1620,38 @@ function EventDetailView({
   onClose: () => void,
   onUpdatePacked: (eid: string, pids: string[]) => void,
   onUpdateAssignment: (eid: string, date: string, oid: string | undefined) => void,
-  onAddOutfit: (o: Omit<Outfit, 'id'>) => void
+  onAddOutfit: (o: Omit<Outfit, 'id'>) => void,
+  onOpenAIStylist: (evt: Event) => void
 }) {
   const [tab, setTab] = useState<'Itinerary' | 'Packing'>('Itinerary');
   const [selectingOutfitForDate, setSelectingOutfitForDate] = useState<string | null>(null);
   const [showQuickBuilder, setShowQuickBuilder] = useState(false);
+  const [localPackedIds, setLocalPackedIds] = useState<string[]>(event.packedPieceIds || []);
+  const [isSavingPacking, setIsSavingPacking] = useState(false);
+
+  // Sync local packed IDs if event changes (e.g. from cloud)
+  useEffect(() => {
+    setLocalPackedIds(event.packedPieceIds || []);
+  }, [event.packedPieceIds]);
 
   const possibleOutfits = useMemo(() => {
     return outfits.filter(outfit => {
-      const piecesNeeded = [outfit.topId, outfit.bottomId, outfit.outerId, outfit.accessoryId].filter(Boolean) as string[];
-      return piecesNeeded.every(id => event.packedPieceIds.includes(id));
+      const piecesNeeded = [outfit.topId, outfit.bottomId, outfit.midLayerId, outfit.outerId, outfit.accessoryId].filter(Boolean) as string[];
+      return piecesNeeded.every(id => localPackedIds.includes(id));
     });
-  }, [outfits, event.packedPieceIds]);
+  }, [outfits, localPackedIds]);
 
   const togglePacked = (pid: string) => {
-    const newPacked = event.packedPieceIds.includes(pid)
-      ? event.packedPieceIds.filter(id => id !== pid)
-      : [...event.packedPieceIds, pid];
-    onUpdatePacked(event.id, newPacked);
+    setLocalPackedIds(prev => 
+      prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid]
+    );
+  };
+
+  const handleSavePacking = async () => {
+    setIsSavingPacking(true);
+    await onUpdatePacked(event.id, localPackedIds);
+    setIsSavingPacking(false);
+    setTab('Itinerary');
   };
 
   return (
@@ -1595,19 +1674,28 @@ function EventDetailView({
             </p>
           </div>
         </div>
-        <div className="flex bg-gray-100 p-1 rounded-xl">
+        <div className="flex items-center gap-3">
           <button 
-            onClick={() => setTab('Itinerary')}
-            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Itinerary' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+            onClick={() => onOpenAIStylist(event)}
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 to-slate-900 text-indigo-200 text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-1.5 border border-indigo-800/60 shadow-sm"
           >
-            Itinerary
+            <Sparkles size={14} className="text-indigo-300" />
+            <span>AI Stylist</span>
           </button>
-          <button 
-            onClick={() => setTab('Packing')}
-            className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Packing' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
-          >
-            Packing
-          </button>
+          <div className="flex bg-gray-100 p-1 rounded-xl">
+            <button 
+              onClick={() => setTab('Itinerary')}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Itinerary' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+            >
+              Itinerary
+            </button>
+            <button 
+              onClick={() => setTab('Packing')}
+              className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${tab === 'Packing' ? 'bg-white shadow-sm text-[#1A1A1A]' : 'text-[#A1A1A1]'}`}
+            >
+              Packing
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1687,7 +1775,7 @@ function EventDetailView({
                   <h3 className="text-lg font-medium serif italic">Packing List</h3>
                   <div className="flex items-center gap-3">
                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                      {event.packedPieceIds.length} items selected
+                      {localPackedIds.length} items selected
                     </p>
                     <div className="w-1 h-1 rounded-full bg-white/20" />
                     <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
@@ -1709,19 +1797,17 @@ function EventDetailView({
                   const typePieces = pieces.filter(p => p.type === type && p.status === 'Owned');
                   if (typePieces.length === 0) return null;
                   
-                  const allTypePacked = typePieces.every(p => event.packedPieceIds.includes(p.id));
+                  const allTypePacked = typePieces.every(p => localPackedIds.includes(p.id));
                   
                   const toggleAllType = () => {
-                    let newPacked: string[];
                     if (allTypePacked) {
-                      // Deselect all of this type
-                      newPacked = event.packedPieceIds.filter(id => !typePieces.some(p => p.id === id));
+                      setLocalPackedIds(prev => prev.filter(id => !typePieces.some(p => p.id === id)));
                     } else {
-                      // Select all of this type
-                      const otherTypePacked = event.packedPieceIds.filter(id => !typePieces.some(p => p.id === id));
-                      newPacked = [...otherTypePacked, ...typePieces.map(p => p.id)];
+                      setLocalPackedIds(prev => {
+                        const otherTypePacked = prev.filter(id => !typePieces.some(p => p.id === id));
+                        return [...otherTypePacked, ...typePieces.map(p => p.id)];
+                      });
                     }
-                    onUpdatePacked(event.id, newPacked);
                   };
 
                   return (
@@ -1737,7 +1823,7 @@ function EventDetailView({
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {typePieces.map(piece => {
-                          const isPacked = event.packedPieceIds.includes(piece.id);
+                          const isPacked = localPackedIds.includes(piece.id);
                           return (
                             <button 
                               key={piece.id}
@@ -1755,6 +1841,21 @@ function EventDetailView({
                     </div>
                   );
                 })}
+              </div>
+
+              <div className="pt-4 sticky bottom-0 bg-[#FDFDFD] pb-6">
+                <button 
+                  onClick={handleSavePacking}
+                  disabled={isSavingPacking}
+                  className="w-full py-4 bg-[#1A1A1A] text-white rounded-3xl text-sm font-bold uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-xl"
+                >
+                  {isSavingPacking ? (
+                    <RefreshCw size={18} className="animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={18} />
+                  )}
+                  Save Packing List
+                </button>
               </div>
             </motion.div>
           )}
@@ -1786,30 +1887,51 @@ function EventDetailView({
               </div>
 
               <div className="flex-1 overflow-y-auto space-y-3 pr-2 no-scrollbar">
-                {outfits.map(outfit => {
-                  const top = pieces.find(p => p.id === outfit.topId);
-                  const bottom = pieces.find(p => p.id === outfit.bottomId);
-                  
-                  return (
+                {possibleOutfits.length > 0 ? (
+                  possibleOutfits.map(outfit => {
+                    const top = pieces.find(p => p.id === outfit.topId);
+                    const bottom = pieces.find(p => p.id === outfit.bottomId);
+                    
+                    return (
+                      <button 
+                        key={outfit.id}
+                        onClick={() => {
+                          onUpdateAssignment(event.id, selectingOutfitForDate, outfit.id);
+                          setSelectingOutfitForDate(null);
+                        }}
+                        className="w-full p-4 bg-white border border-[#E5E5E5] rounded-3xl flex items-center gap-4 hover:border-[#1A1A1A] transition-all"
+                      >
+                        <div className="flex -space-x-2">
+                          <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={8} />
+                          <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={8} />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-bold">{top?.title} + {bottom?.title}</p>
+                          <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion.join(', ')}</p>
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="py-12 text-center space-y-4">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-[#A1A1A1]">
+                      <Package size={24} strokeWidth={1.5} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">No possible outfits</p>
+                      <p className="text-xs text-[#A1A1A1]">You haven't packed the pieces needed for any of your outfits yet.</p>
+                    </div>
                     <button 
-                      key={outfit.id}
                       onClick={() => {
-                        onUpdateAssignment(event.id, selectingOutfitForDate, outfit.id);
                         setSelectingOutfitForDate(null);
+                        setTab('Packing');
                       }}
-                      className="w-full p-4 bg-white border border-[#E5E5E5] rounded-3xl flex items-center gap-4 hover:border-[#1A1A1A] transition-all"
+                      className="text-xs font-bold uppercase tracking-widest text-[#1A1A1A] underline underline-offset-4"
                     >
-                      <div className="flex -space-x-2">
-                        <PieceIcon category={top?.category || 'Other'} color={top?.hex} size={8} />
-                        <PieceIcon category={bottom?.category || 'Other'} color={bottom?.hex} size={8} />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-bold">{top?.title} + {bottom?.title}</p>
-                        <p className="text-[10px] text-[#A1A1A1] uppercase tracking-wider">{outfit.occasion.join(', ')}</p>
-                      </div>
+                      Go to Packing List
                     </button>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>
@@ -2009,7 +2131,6 @@ function SettingsView({
   onExport, 
   onImport, 
   onReset,
-  onResetToSourceOfTruth,
   onSyncNow
 }: { 
   lastExported: number | null, 
@@ -2020,7 +2141,6 @@ function SettingsView({
   onExport: () => void, 
   onImport: (e: React.ChangeEvent<HTMLInputElement>) => void, 
   onReset: () => void,
-  onResetToSourceOfTruth: () => void,
   onSyncNow: () => void
 }) {
   const [showDebug, setShowDebug] = useState(false);
@@ -2147,16 +2267,6 @@ function SettingsView({
           </div>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3">
-              <button 
-                onClick={onResetToSourceOfTruth}
-                className="flex items-center justify-center gap-2 py-4 border border-[#1A1A1A] text-[#1A1A1A] rounded-2xl text-xs font-bold uppercase tracking-widest hover:bg-gray-50 transition-colors"
-              >
-                <Sparkles size={16} />
-                Reset to Source of Truth
-              </button>
-            </div>
-            
             <div className="space-y-3 pt-4 border-t border-gray-100">
               <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#A1A1A1]">
                 <span>Backup & Restore</span>

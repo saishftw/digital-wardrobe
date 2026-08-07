@@ -1,5 +1,6 @@
 {
   "name": "Digital Wardrobe",
-  "description": "Digital Wardrobe",
-  "requestFramePermissions": []
+  "description": "Digital Wardrobe with Personal Style Profile & AI Outfit Generator",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
