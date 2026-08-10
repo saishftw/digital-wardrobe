@@ -91,9 +91,11 @@ export function AIStylistModal({
   onAddToWishlist,
   onAssignOutfitToEventDay
 }: AIStylistModalProps) {
+  const packedCount = event?.packedPieceIds?.length || 0;
   const [eventName, setEventName] = useState(event?.name || '');
   const [eventDescription, setEventDescription] = useState(event?.description || '');
   const [weather, setWeather] = useState<Weather>('Cool');
+  const [useOnlyPackedPieces, setUseOnlyPackedPieces] = useState<boolean>(packedCount > 0);
   
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
@@ -102,20 +104,28 @@ export function AIStylistModal({
 
   const [savedOutfitsMap, setSavedOutfitsMap] = useState<Record<number, boolean>>({});
   const [addedWishlistMap, setAddedWishlistMap] = useState<Record<number, boolean>>({});
-  const [selectedEventDate, setSelectedEventDate] = useState<string>('');
+  const [appliedAll, setAppliedAll] = useState(false);
 
   const loadingMessages = [
     'Evaluating skin undertones & color contrast...',
     'Analyzing midsection fit & flat-front trouser rules...',
     'Matching face structure to open collar stances...',
     'Calculating height proportions (181cm) & vertical drape...',
-    'Scanning wardrobe for high-suitability combinations...',
-    'Formulating missing piece suggestions...'
+    'Scanning event-selected pieces & event description for all days...',
+    'Formulating day-by-day outfits & missing piece suggestions...'
   ];
 
   const handleGenerate = async () => {
-    if (ownedPieces.length === 0) {
-      setError('Please add at least one owned piece to your closet first.');
+    let piecesToPass = ownedPieces;
+    if (event && useOnlyPackedPieces && packedCount > 0) {
+      const filtered = ownedPieces.filter(p => event.packedPieceIds?.includes(p.id));
+      if (filtered.length > 0) {
+        piecesToPass = filtered;
+      }
+    }
+
+    if (piecesToPass.length === 0) {
+      setError('No available pieces match the selected scope. Please select pieces or uncheck the packed items restriction.');
       return;
     }
 
@@ -123,6 +133,7 @@ export function AIStylistModal({
     setError(null);
     setResults(null);
     setLoadingStep(0);
+    setAppliedAll(false);
 
     const stepInterval = setInterval(() => {
       setLoadingStep(prev => (prev + 1) % loadingMessages.length);
@@ -132,15 +143,18 @@ export function AIStylistModal({
       const payload = {
         userProfile,
         sourceTab,
-        event: eventName ? {
-          name: eventName,
-          description: eventDescription,
+        useOnlyPackedPieces: event ? useOnlyPackedPieces : false,
+        event: (eventName || event) ? {
+          name: eventName || event?.name || 'Event',
+          description: eventDescription || event?.description || '',
           startDate: event?.startDate,
           endDate: event?.endDate,
-          location: event?.location
+          location: event?.location,
+          dayAssignments: event?.dayAssignments,
+          packedPieceIds: event?.packedPieceIds
         } : undefined,
         weather,
-        ownedPieces,
+        ownedPieces: piecesToPass,
         wishlistPieces,
         existingOutfits
       };
@@ -165,6 +179,33 @@ export function AIStylistModal({
       clearInterval(stepInterval);
       setLoading(false);
     }
+  };
+
+  const handleApplyAllToEvent = () => {
+    if (!event || !onAssignOutfitToEventDay || !results) return;
+
+    results.outfitRecommendations.forEach((rec, idx) => {
+      const dateToAssign = rec.assignedDate || event.dayAssignments?.[idx]?.date || event.dayAssignments?.[0]?.date;
+      if (!dateToAssign) return;
+
+      const outfitData = {
+        topId: rec.topId,
+        bottomId: rec.bottomId,
+        midLayerId: rec.midLayerId,
+        outerId: rec.outerId,
+        accessoryId: rec.accessoryId,
+        rating: rec.suitabilityScore || 9,
+        occasion: rec.occasion || [event.name],
+        weather: rec.weather || weather,
+        notes: `${rec.rationale} | Tips: ${rec.stylingTips}`
+      };
+
+      onSaveOutfit(outfitData);
+      const outfitId = `o_ai_${Date.now()}_${idx}`;
+      onAssignOutfitToEventDay(event.id, dateToAssign, outfitId);
+    });
+
+    setAppliedAll(true);
   };
 
   const handleSaveRecommendedOutfit = (rec: AIOutfitRecommendation, index: number) => {
@@ -293,6 +334,36 @@ export function AIStylistModal({
                 </div>
               </div>
 
+              {event && (
+                <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Layers size={16} className="text-indigo-700 shrink-0" />
+                      <span className="text-xs font-bold text-indigo-950">
+                        Event Wardrobe Scope
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
+                      {packedCount} Selected Items
+                    </span>
+                  </div>
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                    <input 
+                      type="checkbox"
+                      checked={useOnlyPackedPieces}
+                      onChange={(e) => setUseOnlyPackedPieces(e.target.checked)}
+                      disabled={packedCount === 0}
+                      className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-gray-300 cursor-pointer shrink-0"
+                    />
+                    <span className="text-xs font-medium text-indigo-900 leading-snug">
+                      {packedCount > 0 
+                        ? `Only use pieces selected/packed for "${event.name}" (${packedCount} items)`
+                        : 'No pieces selected for this event yet (will consider all wardrobe items)'}
+                    </span>
+                  </label>
+                </div>
+              )}
+
               {error && (
                 <div className="p-3 sm:p-4 bg-red-50 text-red-700 rounded-xl sm:rounded-2xl text-xs flex items-center gap-2 border border-red-200">
                   <AlertCircle size={16} className="shrink-0" />
@@ -362,10 +433,25 @@ export function AIStylistModal({
 
               {/* Recommended Outfits */}
               <div className="space-y-3 sm:space-y-4">
-                <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-2">
-                  <Shirt size={15} />
-                  Recommended Outfits from Your Wardrobe ({results.outfitRecommendations.length})
-                </h3>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#1A1A1A] flex items-center gap-2">
+                    <Shirt size={15} />
+                    Recommended Outfits from Your Wardrobe ({results.outfitRecommendations.length})
+                  </h3>
+
+                  {event && onAssignOutfitToEventDay && (
+                    <button
+                      onClick={handleApplyAllToEvent}
+                      disabled={appliedAll}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
+                        appliedAll ? 'bg-emerald-100 text-emerald-800' : 'bg-gradient-to-r from-indigo-900 to-slate-900 text-white hover:scale-105 shadow-sm'
+                      }`}
+                    >
+                      {appliedAll ? <Check size={13} /> : <Calendar size={13} />}
+                      {appliedAll ? 'All Event Days Applied!' : `Apply All to ${event.name}`}
+                    </button>
+                  )}
+                </div>
 
                 <div className="space-y-3 sm:space-y-4">
                   {results.outfitRecommendations.map((rec, index) => {
@@ -376,14 +462,23 @@ export function AIStylistModal({
                     const acc = getPiece(rec.accessoryId);
 
                     const isSaved = savedOutfitsMap[index];
+                    const targetDayDate = rec.assignedDate || event?.dayAssignments?.[index]?.date;
 
                     return (
                       <div 
                         key={index}
                         className="bg-white border border-[#E5E5E5] rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-3 sm:space-y-4 hover:border-[#1A1A1A] transition-all shadow-sm"
                       >
-                        <div className="flex justify-between items-center gap-2">
-                          <h4 className="text-xs sm:text-base font-bold text-[#1A1A1A]">{rec.title}</h4>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="space-y-1">
+                            <h4 className="text-xs sm:text-base font-bold text-[#1A1A1A]">{rec.title}</h4>
+                            {targetDayDate && (
+                              <div className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-900 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                                <Calendar size={11} className="text-indigo-600" />
+                                <span>Day {index + 1}: {new Date(targetDayDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}</span>
+                              </div>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-100 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold shrink-0">
                             <Star size={11} className="fill-indigo-600 text-indigo-600 shrink-0" />
                             <span>{rec.suitabilityScore}/10 Match</span>

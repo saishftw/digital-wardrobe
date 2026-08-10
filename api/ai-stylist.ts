@@ -14,7 +14,7 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { userProfile, event, weather, occasion, ownedPieces, wishlistPieces, existingOutfits, sourceTab } = req.body || {};
+  const { userProfile, event, weather, occasion, ownedPieces, wishlistPieces, existingOutfits, sourceTab, useOnlyPackedPieces } = req.body || {};
 
   const safeOwned = Array.isArray(ownedPieces) && ownedPieces.length > 0 
     ? ownedPieces 
@@ -41,15 +41,19 @@ export default async function handler(req: any, res: any) {
   try {
     const ai = getGeminiClient();
 
+    const dayDates = event?.dayAssignments?.map((d: any) => d.date) || [];
+    const eventDaysCount = dayDates.length || (event?.startDate && event?.endDate ? Math.max(1, Math.ceil((new Date(event.endDate).getTime() - new Date(event.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1) : 0);
+
     const prompt = `
 You are an expert personal stylist and sartorial consultant.
 Your job is to generate tailored outfit recommendations and shopping suggestions based on the user's physical profile, personal wardrobe, and specific event or tab context.
 
 === APPLICATION TAB TRIGGER CONTEXT ===
 Triggered From Tab: ${sourceTab || 'General'}
+${useOnlyPackedPieces ? '--> CRITICAL CONSTRAINT: The user specifically selected to ONLY use pieces packed/selected for this event! You MUST strictly pick topId, bottomId, midLayerId, and outerId from the provided owned inventory list.' : ''}
 ${sourceTab === 'Wardrobe' ? '--> FOCUS: Analyze overall wardrobe gaps, identify missing staple pieces, and showcase versatile daily mix-and-match formulas from owned items.' : ''}
 ${sourceTab === 'Outfits' ? '--> FOCUS: Focus on generating high-aesthetic outfit formulas, layering combos, and outfit versatility.' : ''}
-${sourceTab === 'Events' ? `--> FOCUS: Optimize specifically for the event "${event?.name || 'Upcoming Event'}" considering weather (${weather}), location, and dress code.` : ''}
+${sourceTab === 'Events' || event ? `--> FOCUS: Optimize specifically for the event "${event?.name || 'Upcoming Event'}" considering weather (${weather}), location, description, and event days.` : ''}
 ${sourceTab === 'Profile' ? '--> FOCUS: Deep physical trait analysis! Explicitly explain how clothing choices camouflage midsection fullness, flatter 181cm height, and elongate round/oval face structure.' : ''}
 
 === USER PHYSICAL PROFILE & SARTORIAL TRAITS ===
@@ -78,10 +82,12 @@ ${sourceTab === 'Profile' ? '--> FOCUS: Deep physical trait analysis! Explicitly
 - Event Name: ${event?.name || occasion || 'General Dressing'}
 - Description: ${event?.description || 'Daily outfit recommendation'}
 - Location: ${event?.location || 'Not specified'}
+- Dates / Days: ${dayDates.length > 0 ? dayDates.join(', ') : `${event?.startDate || 'N/A'} to ${event?.endDate || 'N/A'}`}
 - Weather / Temperature: ${weather || 'Cool'}
+- Use Only Packed / Selected Event Pieces: ${useOnlyPackedPieces ? 'YES - STRICT CONSTRAINT' : 'NO'}
 
 === AVAILABLE WARDROBE INVENTORY ===
-Owned Pieces:
+Owned Pieces (STRICT SOURCE FOR OUTFIT IDs):
 ${JSON.stringify(safeOwned, null, 2)}
 
 Wishlist Pieces:
@@ -91,8 +97,8 @@ Existing Outfit Combos:
 ${JSON.stringify(existingOutfits || [], null, 2)}
 
 === YOUR INSTRUCTIONS ===
-1. Analyze how the user's skin undertone (${userProfile?.undertone || 'Warm'}), face shape (${userProfile?.faceShape || 'Round'}), height (${userProfile?.height || "181 cm"}), and midsection carry ("skinny fat" build) pair with the requested context.
-2. Recommend 2 to 4 distinct outfits composed strictly using the 'id' of valid owned pieces from the inventory. Each outfit MUST have at least a topId and bottomId. You can include midLayerId, outerId, or accessoryId if appropriate.
+1. Analyze how the user's skin undertone (${userProfile?.undertone || 'Warm'}), face shape (${userProfile?.faceShape || 'Round'}), height (${userProfile?.height || "181 cm"}), and midsection carry ("skinny fat" build) pair with the requested context and event description.
+2. ${eventDaysCount > 0 ? `IMPORTANT FOR MULTI-DAY EVENT: The event spans ${eventDaysCount} day(s) (${dayDates.join(', ')}). Generate an outfit recommendation for EACH day of the event! Assign each outfit an 'assignedDate' field set to one of the event dates: ${JSON.stringify(dayDates)}. Re-mix and re-combine pieces smartly across days if needed!` : 'Recommend 2 to 4 distinct outfits composed strictly using valid piece IDs from the provided inventory.'}
 3. Suggest 1 to 3 missing items to buy (e.g., flat-front trousers, open-collar linen overshirts, structured mid-layers) that elevate their look for this context and complement their skin tone, tummy concealment, and 181cm frame.
 4. Provide detailed styling tips (e.g., French tuck, open layer stance, collar unbuttoning, trouser rise positioning) and an explicit rationale explaining why the colors and cuts flatters their midsection, round face, and height.
 `;
@@ -129,7 +135,8 @@ ${JSON.stringify(existingOutfits || [], null, 2)}
                       weather: { type: Type.STRING },
                       suitabilityScore: { type: Type.NUMBER },
                       rationale: { type: Type.STRING },
-                      stylingTips: { type: Type.STRING }
+                      stylingTips: { type: Type.STRING },
+                      assignedDate: { type: Type.STRING, description: 'ISO date string YYYY-MM-DD for event day assignment if applicable' }
                     },
                     required: ['title', 'topId', 'bottomId', 'occasion', 'weather', 'suitabilityScore', 'rationale', 'stylingTips']
                   }

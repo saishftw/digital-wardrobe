@@ -70,12 +70,15 @@ export interface UserProfile {
 export interface AIStylistRequest {
   userProfile?: UserProfile;
   sourceTab?: string;
+  useOnlyPackedPieces?: boolean;
   event?: {
     name: string;
     description?: string;
     startDate?: string;
     endDate?: string;
     location?: string;
+    dayAssignments?: DayAssignment[];
+    packedPieceIds?: string[];
   };
   weather?: Weather;
   occasion?: string;
@@ -96,6 +99,7 @@ export interface AIOutfitRecommendation {
   suitabilityScore: number; // 1-10
   rationale: string; // Why it works for their skin tone, face structure, height & event
   stylingTips: string; // Specific advice like sleeve fold, collar stance, layering trick
+  assignedDate?: string; // YYYY-MM-DD string matching event day assignment
 }
 
 export interface AIMissingItemRecommendation {
