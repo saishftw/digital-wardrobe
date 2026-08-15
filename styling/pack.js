@@ -57,14 +57,22 @@ const TOP_MAX_SMART = { blp:0, t12:2, wcr:1, rcr:1, t2:1, t10:1, wpo:2, t5:2, ja
 /* The wearer's own rules, which override the scores.
    - fly in a knit tee, not a shirt (bomber optional over it)
    - the black pleated trousers are a night-out trouser only, and only under
-     the camp collar, the rustic button-down or a plain white tee              */
+     the camp collar, the rustic button-down or a plain white tee
+   - the rustic button-down is a backup, not a planned outfit: at most one
+     wear, at night only, and only over beige shorts or the pleated trousers
+   - the oversized print tee is a shorts-only piece                            */
 const PLEATED_TOPS = ['t11','t5','t2'];
+const RUSTIC_BOTS  = ['bsh','b1'];
+const MAX_WEARS    = { t5:1 };            // default is 2, set below
+const WEAR_CAP     = 2;                   // no top gets worn more than twice
 const isNight = slot => slot.id.endsWith('n');
 
 const valid = (t,b,s,slot) => {
   const bb = byId(b), ss = byId(s);
   if (GR[t+'|'+b] === 'veto') return false;
   if (slot.legs && byId(t).collar !== 'crew') return false;
+  if (t === 't5'  && (!RUSTIC_BOTS.includes(b) || !isNight(slot))) return false;
+  if (t === 'jag' && bb.leg !== 'short') return false;
   if (b === 'b1' && !(isNight(slot) && !slot.legs && slot.smart >= 1 && PLEATED_TOPS.includes(t))) return false;
   if (slot.long && bb.leg === 'short') return false;
   if (slot.closed && ss.id === 'snd') return false;
@@ -88,6 +96,16 @@ const score = (t,b,s,slot) => {
     v += (byId(t).m[5] + byId(b).m[5]) * slot.legs * 0.9;  // creasing, sat down for hours
     v -= (10 - byId(t).m[1]) * 0.15;             // cabin is 22-24C, breathability is moot
   }
+  /* A plain knit tee has no pattern to carry it, so at night its colour is the
+     whole outfit: a black tee reads as bar wear, a plain white tee reads as
+     laundry day. Patterned and print tees are exempt - the pattern is the
+     interest. This is what separates the two crew-necks on the arrival night. */
+  const tp = byId(t);
+  if (isNight(slot) && tp.collar === 'crew' && !tp.print) {
+    const n = parseInt(tp.color.slice(1),16);
+    const lum = (0.2126*(n>>16&255) + 0.7152*(n>>8&255) + 0.0722*(n&255)) / 255;
+    v += (1 - lum) * 12;
+  }
   return v;
 };
 
@@ -98,7 +116,7 @@ function plan(kit, washes) {
   const capT = {}; tops.forEach(t => capT[t] = 1);
   let extra = washes;
   const used = new Set(); let total = 0; const rows = [];
-  const wearB = {}; const wornToday = {}; const chosen = {}; const lastWorn = {};
+  const wearB = {}; const wornToday = {}; const chosen = {}; const wornAt = {};
   /* Assign the most-constrained slots first. Going chronologically let the
      dressiest night of the trip inherit whatever the earlier days had not used
      up; going by importance instead starved the water days. Counting how many
@@ -119,8 +137,12 @@ function plan(kit, washes) {
     for (const t of tops) {
       if ((capT[t]||0) <= 0 && extra <= 0) continue;
       if (wornToday[slot.day]?.has(t)) continue;   // never the same top twice in one day
-      const last = lastWorn[t];                    // space re-wears out by >= 3 slots
-      if (last !== undefined && Math.abs(SLOTS.indexOf(slot) - last) < 3) continue;
+      const at = wornAt[t] || [];                  // hard cap on how often a top repeats
+      if (at.length >= (MAX_WEARS[t] ?? WEAR_CAP)) continue;
+      // space re-wears out by >= 3 slots from EVERY previous wear, not just the
+      // last one assigned: slots are filled most-constrained-first, so the last
+      // assignment is not the nearest one in calendar order.
+      if (at.some(i => Math.abs(idx - i) < 3)) continue;
       for (const b of bots) for (const s of shoes) {
         if (!valid(t,b,s,slot)) continue;
         if (used.has(t+'|'+b)) continue;                    // no identical repeat
@@ -135,7 +157,7 @@ function plan(kit, washes) {
     used.add(best.t+'|'+best.b);
     (wornToday[slot.day] = wornToday[slot.day] || new Set()).add(best.t);
     wearB[best.b] = (wearB[best.b]||0)+1;
-    chosen[slot.id] = best; lastWorn[best.t] = SLOTS.indexOf(slot);
+    chosen[slot.id] = best; (wornAt[best.t] = wornAt[best.t] || []).push(idx);
     total += best.v; rows.push({ slot, pick:best });
   }
   rows.sort((a,b) => SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot));

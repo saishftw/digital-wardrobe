@@ -51,7 +51,8 @@
     "t10|b1": "pick",
     "wpo|b1": "pick",
     "t11|b1": "pick",
-    "t5|b1": "pick"
+    "t5|b1": "pick",
+    "t11|b5": "veto"
   },
   "packed": {
     "t5": true,

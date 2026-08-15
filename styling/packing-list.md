@@ -1,15 +1,13 @@
 # Packing list — Bangkok / Phu Quoc / Hanoi, 17–24 Aug 2026
 
-**16 items. 14/14 slots. All 14 outfits green-flagged. Crew-necks on every flight, pleated for nights only.**
-
-Revised against the wearer's own proposed kit (see "Verdicts" at the bottom).
+**16 items (17 with the Jäger tee). 14/14 slots. No top worn more than twice, none back-to-back.**
 
 ## The kit
 
 **Shirts (5)** — Striped Camp Collar · White LS/black stripes ·
-Navy LS/white stripes · Navy Striped (SS) · Rustic Button-down
+Navy LS/white stripes · Navy Striped (SS) · Rustic Button-down *(backup, 1 night)*
 
-**Polo (1)** — Wine Polo    **Tees (2)** — White Crew-neck · Black Crew-neck
+**Polo (1)** — Wine Polo    **Tees (2+1)** — White Crew-neck · Black Crew-neck · Jäger Print Tee *(spare)*
 
 **Long (3)** — Beige Linen Pants · Camel Chinos · Black Pleated Wide *(nights only)*
 
@@ -21,37 +19,57 @@ Plus: swim shorts, goggles, light bomber (worn on the plane, not packed).
 
 ### Rules encoded
 - **Fly in a crew-neck**, never a shirt. Bomber optional over it.
+- **Max 2 wears per top**, and never within 3 slots of another wear — so no
+  piece appears three times and nothing repeats back-to-back.
 - **Black pleated is a night trouser only** — never a flight, never a day — and
   only under the camp collar, the rustic button-down or a plain white tee.
-- A top may repeat, but only after a **3-slot gap**, to spread wears out.
+- **Rustic Button-down is a backup**: one wear, at night, over beige shorts or
+  the pleated only.
+- **Jäger tee is shorts-only.**
+- At night, a plain knit tee is judged on colour — black reads as bar wear, a
+  plain white tee does not. Patterned tops are exempt.
 - Navy Linen (Hamptons) and Forest Corduroy are **out**.
-
-Plus: swim shorts, goggles, packable rain shell.
 
 ## Day by day
 
 | Day | Occasion | Outfit | Score |
 |---|---|---|---|
-| Aug 17 | **Fly GOA-BOM-BKK** → Tichuca | White Crew-neck + Camel Chinos | 110 |
+| Aug 17 | **Fly GOA-BOM-BKK** → Tichuca | Black Crew-neck + Camel Chinos | 115 |
 | Aug 18 | **Grand Palace** → go-kart | Navy Striped (SS) + Beige Linen Pants | 93 |
-| Aug 18 | **Lebua → ONYX** | Rustic Button-down + Beige Linen Pants | 104 |
-| Aug 19 | Range → MBK | Striped Camp Collar + Black Shorts | 94 |
-| Aug 19 | Street food → Tribe | Wine Polo + Beige Linen Pants | 104 |
-| Aug 20 | **Fly BKK-PQC** | Black Crew-neck + Camel Chinos | 98 |
-| Aug 20 | Sunset Town | Navy LS/white stripes + Beige Linen Pants | 94 |
+| Aug 18 | **Lebua → ONYX** | Wine Polo + Beige Linen Pants | 104 |
+| Aug 19 | Range → MBK | White LS/black stripes + Black Shorts | 87 |
+| Aug 19 | Street food → Tribe / Aether | Navy LS/white stripes + Beige Linen Pants | 98 |
+| Aug 20 | **Fly BKK-PQC** | White Crew-neck + Camel Chinos | 104 |
+| Aug 20 | Sunset Town | **Rustic Button-down + Black Pleated Wide** | 96 |
 | Aug 21 | Beach / water park | White LS/black stripes + Navy Linen Shorts | 120 |
-| Aug 21 | OCSEN beach bar | **Rustic Button-down + Black Pleated Wide** | 90 |
+| Aug 21 | OCSEN beach bar | Navy LS/white stripes + Beige Shorts | 94 |
 | Aug 22 | **Fly PQC-HAN** | White Crew-neck + Beige Linen Pants | 95 |
-| Aug 22 | Grand World → Ta Hien | Navy LS/white stripes + Camel Chinos | 90 |
-| Aug 23 | Halong kayak + swim | Navy LS/white stripes + Beige Shorts | 116 |
-| Aug 23 | Ta Hien | Navy Striped (SS) + Beige Shorts | 88 |
+| Aug 22 | Grand World → Ta Hien | Navy Striped (SS) + Beige Shorts | 88 |
+| Aug 23 | Halong kayak + swim | Striped Camp Collar + Black Shorts | 112 |
+| Aug 23 | Ta Hien | Wine Polo + Beige Shorts | 85 |
 | Aug 24 | **Fly HAN-BOM-GOA** | Black Crew-neck + Beige Linen Pants | 99 |
 
-Total 1395, 14/14 slots, **14 of 14 green-flagged, 0 vetoes.**
-Cork sandals throughout. Rustic repeats Aug 18 → Aug 21, three days apart.
+Total 1390, 14/14 slots, **13 of 14 green-flagged, 0 vetoes** (Aug 23 night ungraded).
+Cork sandals throughout.
 
 Laundry: **Bangkok Aug 19 morning** and **Hanoi Aug 22 evening**, hotel service.
 Do not sink-wash — Phu Quoc runs 86.5% RH in August and nothing dries overnight.
+
+## Venues ranked by how dressed-up they are
+
+| # | Venue | Night | What it demands |
+|---|---|---|---|
+| 1 | **Lebua Sky Bar / Sirocco** | Aug 18 | Only venue on the trip with a published, enforced code. Smart elegant. No flip-flops, beach slippers, sleeveless, swimwear or athletic wear. Tailored shorts + elegant sandals are explicitly allowed. |
+| 2 | **ONYX** (RCA) | Aug 18 | Large international club, no published code, door discretion. Closed shoes are the safer call. |
+| 3 | **Tribe Sky Beach Club** | Aug 19 | Rooftop beach club at EmQuartier. Shorts and sandals fine by day; smarter after dark. |
+| 4 | **Aether** | Aug 19 | Bangkok club, no published code. Smart casual. |
+| 5 | **Tichuca** | Aug 17 | Jungle-themed rooftop, very popular, no published code. Smart casual clears it. |
+| 6 | **Sunset Town / Kiss of the Sea** | Aug 20 | Outdoor show + night market. Casual. |
+| 7 | **OCSEN Beach Bar** | Aug 21 | Feet-in-the-sand beach bar. Sandals, shorts. |
+| 8 | **Ta Hien** (beer street) | Aug 22–23 | Plastic stools on a pavement. The most casual nights of the trip. |
+
+Only **#1 and #2 are worth dressing up for.** Everything from #5 down is a
+shorts-and-sandals night.
 
 ## Travel days — 6 flight legs
 
