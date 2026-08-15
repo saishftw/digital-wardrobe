@@ -88,9 +88,24 @@ function plan(kit, washes) {
   const { tops, bots, shoes } = kit;
   const capT = {}; tops.forEach(t => capT[t] = 1);
   let extra = washes;
-  const used = new Set(); let prevBottom = null, total = 0; const rows = [];
-  const wearB = {}; const wornToday = {};
-  for (const slot of SLOTS) {
+  const used = new Set(); let total = 0; const rows = [];
+  const wearB = {}; const wornToday = {}; const chosen = {};
+  /* Assign the most-constrained slots first. Going chronologically let the
+     dressiest night of the trip inherit whatever the earlier days had not used
+     up; going by importance instead starved the water days. Counting how many
+     combinations each slot actually admits handles both. */
+  const freedom = slot => {
+    let n = 0;
+    for (const t of tops) for (const b of bots) for (const sh of shoes)
+      if (valid(t,b,sh,slot)) n++;
+    return n;
+  };
+  const order = SLOTS.map((s,i)=>({ s, i, f:freedom(s) }))
+    .sort((a,b)=> a.f - b.f || (b.s.smart - a.s.smart) || a.i - b.i)
+    .map(o=>o.s);
+  for (const slot of order) {
+    const idx = SLOTS.indexOf(slot);
+    const prevBottom = idx > 0 ? chosen[SLOTS[idx-1].id]?.b ?? null : null;
     let best = null;
     for (const t of tops) {
       if ((capT[t]||0) <= 0 && extra <= 0) continue;
@@ -109,8 +124,9 @@ function plan(kit, washes) {
     used.add(best.t+'|'+best.b);
     (wornToday[slot.day] = wornToday[slot.day] || new Set()).add(best.t);
     wearB[best.b] = (wearB[best.b]||0)+1;
-    prevBottom = best.b; total += best.v; rows.push({ slot, pick:best });
+    chosen[slot.id] = best; total += best.v; rows.push({ slot, pick:best });
   }
+  rows.sort((a,b) => SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot));
   const covered = rows.filter(r=>r.pick).length;
   const worst = covered ? Math.min(...rows.filter(r=>r.pick).map(r=>r.pick.v)) : 0;
   return { rows, total, covered, worst };
