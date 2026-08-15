@@ -51,12 +51,21 @@ const SMART_OK = {
   blp:[0], bsh:[0,1], nsh:[0,1], blsh:[0,1],
 };
 /* tops that cannot carry a smart=2 rooftop */
-const TOP_MAX_SMART = { blp:0, t12:2, wcr:1, rcr:1, t2:1, t10:1, wpo:2, t5:2,
+const TOP_MAX_SMART = { blp:0, t12:2, wcr:1, rcr:1, t2:1, t10:1, wpo:2, t5:2, jag:1,
                         t11:2, wst:2, nst:2, t13:2, t20:1, t19:1, wfm:2 };
+
+/* The wearer's own rules, which override the scores.
+   - fly in a knit tee, not a shirt (bomber optional over it)
+   - the black pleated trousers are a night-out trouser only, and only under
+     the camp collar, the rustic button-down or a plain white tee              */
+const PLEATED_TOPS = ['t11','t5','t2'];
+const isNight = slot => slot.id.endsWith('n');
 
 const valid = (t,b,s,slot) => {
   const bb = byId(b), ss = byId(s);
   if (GR[t+'|'+b] === 'veto') return false;
+  if (slot.legs && byId(t).collar !== 'crew') return false;
+  if (b === 'b1' && !(isNight(slot) && !slot.legs && slot.smart >= 1 && PLEATED_TOPS.includes(t))) return false;
   if (slot.long && bb.leg === 'short') return false;
   if (slot.closed && ss.id === 'snd') return false;
   if (slot.water && ss.id === 'smb') return false;          // suede in seawater, no
@@ -89,7 +98,7 @@ function plan(kit, washes) {
   const capT = {}; tops.forEach(t => capT[t] = 1);
   let extra = washes;
   const used = new Set(); let total = 0; const rows = [];
-  const wearB = {}; const wornToday = {}; const chosen = {};
+  const wearB = {}; const wornToday = {}; const chosen = {}; const lastWorn = {};
   /* Assign the most-constrained slots first. Going chronologically let the
      dressiest night of the trip inherit whatever the earlier days had not used
      up; going by importance instead starved the water days. Counting how many
@@ -110,6 +119,8 @@ function plan(kit, washes) {
     for (const t of tops) {
       if ((capT[t]||0) <= 0 && extra <= 0) continue;
       if (wornToday[slot.day]?.has(t)) continue;   // never the same top twice in one day
+      const last = lastWorn[t];                    // space re-wears out by >= 3 slots
+      if (last !== undefined && Math.abs(SLOTS.indexOf(slot) - last) < 3) continue;
       for (const b of bots) for (const s of shoes) {
         if (!valid(t,b,s,slot)) continue;
         if (used.has(t+'|'+b)) continue;                    // no identical repeat
@@ -124,7 +135,8 @@ function plan(kit, washes) {
     used.add(best.t+'|'+best.b);
     (wornToday[slot.day] = wornToday[slot.day] || new Set()).add(best.t);
     wearB[best.b] = (wearB[best.b]||0)+1;
-    chosen[slot.id] = best; total += best.v; rows.push({ slot, pick:best });
+    chosen[slot.id] = best; lastWorn[best.t] = SLOTS.indexOf(slot);
+    total += best.v; rows.push({ slot, pick:best });
   }
   rows.sort((a,b) => SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot));
   const covered = rows.filter(r=>r.pick).length;

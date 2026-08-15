@@ -59,13 +59,13 @@
     "t11": true,
     "wst": true,
     "nst": true,
-    "t13": true,
+    "t13": false,
     "t20": false,
     "t19": true,
     "rcr": false,
     "wcr": false,
     "t2": true,
-    "t10": false,
+    "t10": true,
     "t12": false,
     "wfm": false,
     "b2": true,
@@ -79,7 +79,8 @@
     "b1": true,
     "snd": true,
     "onz": false,
-    "smb": true
+    "smb": true,
+    "jag": false
   },
-  "saved": "2026-08-15T18:13:40.347Z"
+  "saved": "2026-08-15T21:25:34.010Z"
 }

@@ -1,21 +1,30 @@
 # Packing list — Bangkok / Phu Quoc / Hanoi, 17–24 Aug 2026
 
-**16 items. 14/14 slots. All 14 outfits green-flagged by you. Long trousers on every flight day.**
+**16 items. 14/14 slots. All 14 outfits green-flagged. Crew-necks on every flight, pleated for nights only.**
 
 Revised against the wearer's own proposed kit (see "Verdicts" at the bottom).
 
 ## The kit
 
-**Shirts (6)** — Striped Camp Collar · White LS/black stripes · Navy LS/white stripes ·
-Navy Linen (Hamptons) · Navy Striped (SS) · Rustic Button-down
+**Shirts (5)** — Striped Camp Collar · White LS/black stripes ·
+Navy LS/white stripes · Navy Striped (SS) · Rustic Button-down
 
-**Polo (1)** — Wine Polo    **Tee (1)** — White Crew-neck
+**Polo (1)** — Wine Polo    **Tees (2)** — White Crew-neck · Black Crew-neck
 
-**Long (3)** — Beige Linen Pants · Camel Chinos · Black Pleated Wide
+**Long (3)** — Beige Linen Pants · Camel Chinos · Black Pleated Wide *(nights only)*
 
 **Shorts (3)** — Beige Shorts · Navy Linen Shorts · Black Shorts
 
 **Shoes (2)** — Cork Sandals (olive) · Adidas Sambas
+
+Plus: swim shorts, goggles, light bomber (worn on the plane, not packed).
+
+### Rules encoded
+- **Fly in a crew-neck**, never a shirt. Bomber optional over it.
+- **Black pleated is a night trouser only** — never a flight, never a day — and
+  only under the camp collar, the rustic button-down or a plain white tee.
+- A top may repeat, but only after a **3-slot gap**, to spread wears out.
+- Navy Linen (Hamptons) and Forest Corduroy are **out**.
 
 Plus: swim shorts, goggles, packable rain shell.
 
@@ -23,23 +32,23 @@ Plus: swim shorts, goggles, packable rain shell.
 
 | Day | Occasion | Outfit | Score |
 |---|---|---|---|
-| Aug 17 | **Fly GOA-BOM-BKK** → Tichuca | Navy LS/white stripes + Camel Chinos | 115 |
+| Aug 17 | **Fly GOA-BOM-BKK** → Tichuca | White Crew-neck + Camel Chinos | 110 |
 | Aug 18 | **Grand Palace** → go-kart | Navy Striped (SS) + Beige Linen Pants | 93 |
 | Aug 18 | **Lebua → ONYX** | Rustic Button-down + Beige Linen Pants | 104 |
-| Aug 19 | Range → MBK | Navy LS/white stripes + Beige Shorts | 92 |
+| Aug 19 | Range → MBK | Striped Camp Collar + Black Shorts | 94 |
 | Aug 19 | Street food → Tribe | Wine Polo + Beige Linen Pants | 104 |
-| Aug 20 | **Fly BKK-PQC** | Striped Camp Collar + **Black Pleated Wide** | 108 |
-| Aug 20 | Sunset Town | Navy Linen (Hamptons) + Beige Linen Pants | 93 |
+| Aug 20 | **Fly BKK-PQC** | Black Crew-neck + Camel Chinos | 98 |
+| Aug 20 | Sunset Town | Navy LS/white stripes + Beige Linen Pants | 94 |
 | Aug 21 | Beach / water park | White LS/black stripes + Navy Linen Shorts | 120 |
-| Aug 21 | OCSEN beach bar | Striped Camp Collar + Black Shorts | 90 |
-| Aug 22 | **Fly PQC-HAN** | Navy LS/white stripes + Beige Linen Pants | 107 |
-| Aug 22 | Grand World → Ta Hien | Navy Striped (SS) + Beige Shorts | 88 |
-| Aug 23 | Halong kayak + swim | Navy Linen (Hamptons) + Beige Shorts | 117 |
-| Aug 23 | Ta Hien | White LS/black stripes + Black Shorts | 87 |
-| Aug 24 | **Fly HAN-BOM-GOA** | White Crew-neck + Camel Chinos | 115 |
+| Aug 21 | OCSEN beach bar | **Rustic Button-down + Black Pleated Wide** | 90 |
+| Aug 22 | **Fly PQC-HAN** | White Crew-neck + Beige Linen Pants | 95 |
+| Aug 22 | Grand World → Ta Hien | Navy LS/white stripes + Camel Chinos | 90 |
+| Aug 23 | Halong kayak + swim | Navy LS/white stripes + Beige Shorts | 116 |
+| Aug 23 | Ta Hien | Navy Striped (SS) + Beige Shorts | 88 |
+| Aug 24 | **Fly HAN-BOM-GOA** | Black Crew-neck + Beige Linen Pants | 99 |
 
-Total 1434, 14/14 slots, **14 of 14 green-flagged by you, 0 vetoes.**
-Cork sandals throughout.
+Total 1395, 14/14 slots, **14 of 14 green-flagged, 0 vetoes.**
+Cork sandals throughout. Rustic repeats Aug 18 → Aug 21, three days apart.
 
 Laundry: **Bangkok Aug 19 morning** and **Hanoi Aug 22 evening**, hotel service.
 Do not sink-wash — Phu Quoc runs 86.5% RH in August and nothing dries overnight.

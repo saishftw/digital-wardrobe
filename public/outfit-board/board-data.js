@@ -33,6 +33,7 @@ const DATA = {
     { id:"t2",  name:"White Crew-neck",         color:"#FFFFFF", fabric:"cotton knit",   collar:"crew",        m:[5,7,5,7,4,7] },
     { id:"t10", name:"Black Crew-neck",         color:"#111111", fabric:"cotton knit",   collar:"crew",        m:[2,6,5,5,4,7] },
     { id:"t12", name:"Forest Corduroy",         color:"#013220", fabric:"corduroy",      collar:"point",       m:[8,1,2,3,7,8] },
+    { id:"jag", name:"Jager Print Tee (osz)", color:"#FAFAFA", fabric:"cotton knit",   collar:"crew",        m:[5,7,5,5,4,7], print:true },
     { id:"wfm", name:"White Formal Shirt",      color:"#FFFFFF", fabric:"poplin",        collar:"point",       m:[5,5,4,2,7,3] }
   ],
 
@@ -56,7 +57,7 @@ const DATA = {
 
   /* tops x bottoms, 0-100. Order of values matches `bottoms` array. */
   matrix: {
-    t5:  [89,87,78,74,79,70,68,58,66],
+    t5:  [89,87,78,74,79,70,68,58,84],
     wpo: [88,86,70,82,74,71,74,60,72],
     t11: [84,86,84,80,79,78,76,62,76],
     wst: [80,82,81,78,77,76,74,60,75],
@@ -69,6 +70,7 @@ const DATA = {
     t2:  [64,68,70,68,66,66,74,52,63],
     t10: [58,58,52,60,54,42,66,38,48],
     t12: [46,44,42,44,40,38,32,34,40],
+    jag: [60,70,72,64,62,70,76,54,56],
     wfm: [62,48,46,64,60,44,56,36,58]
   },
 
