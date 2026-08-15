@@ -29,20 +29,20 @@ const SLOTS = [
   // beach slippers, sleeveless, swimwear and athletic wear are banned. lebua.com
   // Grand Palace: "short hot pants or short pants" and sleeveless prohibited -> long trousers.
   // EasyKart: closed shoes mandatory BUT rentable on site for 50 THB.
-  { id:'17n', day:'Aug 17', label:'Land 19:15 -> Tichuca rooftop',        long:false, closed:false, water:false, smart:1, rain:50 },
+  { id:'17n', day:'Aug 17', label:'GOA-BOM-BKK, land 19:15 -> Tichuca',    long:true,  closed:false, water:false, smart:1, rain:50, legs:2 },
   { id:'18d', day:'Aug 18', label:'Grand Palace + Wat Arun -> go-kart',   long:true,  closed:false, water:false, smart:1, rain:50 },
   { id:'18n', day:'Aug 18', label:'Lebua Sky Bar -> ONYX nightclub',      long:false, closed:false, water:false, smart:2, rain:50 },
   { id:'19d', day:'Aug 19', label:'Shooting range -> MBK shopping',       long:false, closed:false, water:false, smart:1, rain:50 },
   { id:'19n', day:'Aug 19', label:'Street food -> Tribe / Aether',        long:false, closed:false, water:false, smart:2, rain:50 },
-  { id:'20d', day:'Aug 20', label:'Checkout -> fly BKK-PQC',              long:false, closed:false, water:false, smart:0, rain:60 },
+  { id:'20d', day:'Aug 20', label:'Checkout -> fly BKK-PQC',              long:true,  closed:false, water:false, smart:0, rain:60, legs:1 },
   { id:'20n', day:'Aug 20', label:'Sunset Town, Kiss of the Sea, market', long:false, closed:false, water:false, smart:1, rain:76 },
   { id:'21d', day:'Aug 21', label:'Beach / boat / water park',            long:false, closed:false, water:true,  smart:0, rain:76 },
   { id:'21n', day:'Aug 21', label:'OCSEN beach bar / villa dinner',       long:false, closed:false, water:false, smart:1, rain:76 },
-  { id:'22d', day:'Aug 22', label:'Early flight PQC-HAN, Old Quarter',    long:false, closed:false, water:false, smart:0, rain:53 },
+  { id:'22d', day:'Aug 22', label:'Early flight PQC-HAN, Old Quarter',    long:true,  closed:false, water:false, smart:0, rain:53, legs:1 },
   { id:'22n', day:'Aug 22', label:'Grand World tour -> Ta Hien',          long:false, closed:false, water:false, smart:1, rain:53 },
   { id:'23d', day:'Aug 23', label:'Halong Bay cruise, kayak, swim',       long:false, closed:false, water:true,  smart:0, rain:53 },
   { id:'23n', day:'Aug 23', label:'Ta Hien, Saturday street closure',     long:false, closed:false, water:false, smart:1, rain:53 },
-  { id:'24d', day:'Aug 24', label:'Old Quarter, Train Street, fly home',  long:false, closed:false, water:false, smart:0, rain:53 },
+  { id:'24d', day:'Aug 24', label:'Old Quarter -> HAN-BOM-GOA fly home',  long:true,  closed:false, water:false, smart:0, rain:53, legs:2 },
 ];
 
 /* formality reach of each bottom, reused from the interval model */
@@ -61,7 +61,10 @@ const valid = (t,b,s,slot) => {
   if (slot.closed && ss.id === 'snd') return false;
   if (slot.water && ss.id === 'smb') return false;          // suede in seawater, no
   if (slot.water && bb.leg !== 'short') return false;       // you are getting wet
-  if (!(SMART_OK[b]||[]).includes(slot.smart)) return false;
+  // an airport is its own occasion: a sharp trouser reads fine on a travel day
+  // even though it would be overdressed on a beach day.
+  const reach = slot.legs ? [...(SMART_OK[b]||[]), 0] : (SMART_OK[b]||[]);
+  if (!reach.includes(slot.smart)) return false;
   if ((TOP_MAX_SMART[t] ?? 2) < slot.smart) return false;
   return true;
 };
@@ -72,6 +75,10 @@ const score = (t,b,s,slot) => {
   if (slot.smart === 0) v += (byId(t).m[1] + byId(b).m[1]) * 0.4; // breathability
   if (s === 'smb') v -= slot.rain * 0.18;        // suede vs 50-76% daily rain odds
   v += (byId(t).m[2]) * (slot.rain / 100) * 1.2; // quick-dry pays off when it rains
+  if (slot.legs) {                               // 6 flight legs across 4 days
+    v += (byId(t).m[5] + byId(b).m[5]) * slot.legs * 0.9;  // creasing, sat down for hours
+    v -= (10 - byId(t).m[1]) * 0.15;             // cabin is 22-24C, breathability is moot
+  }
   return v;
 };
 

@@ -41,6 +41,35 @@ Cork sandals throughout. Total 1342, worst slot 85, no top worn twice in one day
 Laundry: **Bangkok Aug 19 morning** and **Hanoi Aug 22 evening**, hotel service.
 Do not sink-wash — Phu Quoc runs 86.5% RH in August and nothing dries overnight.
 
+## Travel days — 6 flight legs
+
+GOA→BOM→BKK (Aug 17) · BKK→PQC (Aug 20) · PQC→HAN (Aug 22) · HAN→BOM→GOA (Aug 24)
+
+Cabins run 22–24 °C, so on a flight day **breathability stops mattering and
+creasing starts**. Wrinkle-resistance is weighted by number of legs flown.
+
+| Day | Legs | Outfit | Why |
+|---|---|---|---|
+| Aug 17 | **2** | Wine Polo + **Camel Chinos** | Polo is wrinkle 8/10 *and* rooftop-ready — you land 19:15 and go straight to Tichuca. Chinos over linen: see below. |
+| Aug 20 | 1 | Navy LS/white stripes + Camel Chinos | Short hop, creasing barely matters |
+| Aug 22 | 1 | Navy Striped (SS) + Beige Linen Pants | Short hop |
+| Aug 24 | **2** | **Black Crew-neck + Camel Chinos** | Your proposal. Wrinkle 7/6, and black hides 12 hours of grime on the way home. |
+
+**Wrinkle-resistance, best to worst.** Tops: Wine Polo 8 · crew-necks 7 ·
+Camp Collar / Rustic 6 · linen shirts 4–5. Bottoms: Black Pleated 8 ·
+Camel Chinos 6 · **Beige Linen Pants 3**.
+
+**Aug 17 is a judgement call, not a model output.** The scorer prefers Wine Polo
++ Beige Linen (124) over Wine Polo + Camel (111), but Beige Linen is wrinkle
+**3/10** — after two flights and ~10 hours seated it will be visibly crushed at
+the knee and seat, at a rooftop bar. It is also needed the next morning for the
+Grand Palace. Wear the Camel and keep the linen fresh.
+
+**Bomber jacket: bring it, but wear it, don't pack it.** It is useful only in the
+cabin and in airport A/C — outside it is 28–33 °C for all eight days. Worn on
+the body it costs zero luggage allowance. Stuff it in the bag on arrival Aug 17
+and don't take it out until Aug 24.
+
 ## Verdicts on the proposed changes
 
 | Change | Verdict | Evidence |
@@ -50,6 +79,7 @@ Do not sink-wash — Phu Quoc runs 86.5% RH in August and nothing dries overnigh
 | Carry Rustic *and* Black Crew | **No** | Both = 1371, same as Rustic alone; Black Crew goes unworn. Pick one. |
 | Add Forest Corduroy | **No** | Breathability 1/10, quick-dry 2/10, versatility 3/10. Selected for 0 of 14 slots in every variant tested. Corduroy at 33 °C / 86% RH. |
 | Add Black Pleated for bars | **No — see below** | Selected for 0 of 14 slots. |
+| Black Crew + Camel for travel | **Yes, on Aug 24** | Ranks 13–14 of 22 on the outbound legs (Wine Polo beats it on every axis but ties on wrinkle), but the planner picks it independently for the flight home. |
 | Sambas over Onitsuka | **Adopted** | 1352 vs 1353. A 1-point difference is noise, so proven comfort wins. |
 | Add Black Shorts | **Yes** | Dropping it costs 17 pts, and it is the only bottom picked with the Camp Collar. |
 
