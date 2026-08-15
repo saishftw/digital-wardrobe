@@ -50,7 +50,8 @@
     "t10|blp": "pick",
     "t10|b1": "pick",
     "wpo|b1": "pick",
-    "t11|b5": "veto"
+    "t11|b1": "pick",
+    "t5|b1": "pick"
   },
   "packed": {
     "t5": true,
@@ -59,26 +60,26 @@
     "wst": true,
     "nst": true,
     "t13": true,
-    "t20": true,
+    "t20": false,
     "t19": true,
-    "rcr": true,
-    "wcr": true,
+    "rcr": false,
+    "wcr": false,
     "t2": true,
     "t10": true,
     "t12": true,
-    "wfm": true,
+    "wfm": false,
     "b2": true,
     "bsh": true,
     "nsh": true,
     "b5": true,
-    "bch": true,
+    "bch": false,
     "blsh": true,
-    "b3": true,
-    "blp": true,
+    "b3": false,
+    "blp": false,
     "b1": true,
     "snd": true,
-    "onz": true,
+    "onz": false,
     "smb": true
   },
-  "saved": "2026-08-15T17:55:24.427Z"
+  "saved": "2026-08-15T18:06:49.113Z"
 }
