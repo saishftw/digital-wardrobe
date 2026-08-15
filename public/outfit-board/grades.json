@@ -65,8 +65,8 @@
     "rcr": false,
     "wcr": false,
     "t2": true,
-    "t10": true,
-    "t12": true,
+    "t10": false,
+    "t12": false,
     "wfm": false,
     "b2": true,
     "bsh": true,
@@ -81,5 +81,5 @@
     "onz": false,
     "smb": true
   },
-  "saved": "2026-08-15T18:06:49.113Z"
+  "saved": "2026-08-15T18:13:40.347Z"
 }
