@@ -82,11 +82,12 @@ function plan(kit, washes) {
   const capT = {}; tops.forEach(t => capT[t] = 1);
   let extra = washes;
   const used = new Set(); let prevBottom = null, total = 0; const rows = [];
-  const wearB = {};
+  const wearB = {}; const wornToday = {};
   for (const slot of SLOTS) {
     let best = null;
     for (const t of tops) {
       if ((capT[t]||0) <= 0 && extra <= 0) continue;
+      if (wornToday[slot.day]?.has(t)) continue;   // never the same top twice in one day
       for (const b of bots) for (const s of shoes) {
         if (!valid(t,b,s,slot)) continue;
         if (used.has(t+'|'+b)) continue;                    // no identical repeat
@@ -99,6 +100,7 @@ function plan(kit, washes) {
     if (!best) { rows.push({ slot, pick:null }); continue; }
     if ((capT[best.t]||0) > 0) capT[best.t]--; else extra--;
     used.add(best.t+'|'+best.b);
+    (wornToday[slot.day] = wornToday[slot.day] || new Set()).add(best.t);
     wearB[best.b] = (wearB[best.b]||0)+1;
     prevBottom = best.b; total += best.v; rows.push({ slot, pick:best });
   }
@@ -140,8 +142,13 @@ function search(nT, nB, nS, washes, iters=4000) {
 }
 
 const NAME = id => byId(id).name;
-const args = process.argv.slice(2);
-if (args[0] === 'curve') {
+export { DATA, T, B, S, SLOTS, GR, byId, cell, shoe, valid, score, plan, search, NAME };
+
+const isMain = process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+const args = isMain ? process.argv.slice(2) : ['noop'];
+if (args[0] === 'noop') { /* imported as a module */ }
+else if (args[0] === 'curve') {
   const washes = Number(args[1] ?? 2);
   console.log(`# marginal value of each extra item  (laundry: ${washes} extra wears)\n`);
   console.log('items  tops bot shoe  covered  total    worst  kit');
