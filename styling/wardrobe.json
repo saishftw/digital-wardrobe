@@ -1,0 +1,35 @@
+{
+  "_comment": "Current true inventory: originally packed pieces plus the new additions. Kept separate from backup/ so the app export is never mutated.",
+  "tops": [
+    {"id": "t2",  "title": "White Crew-neck",            "hex": "#FFFFFF", "fabric": "cotton-knit",  "collar": "crew",   "pattern": "plain",   "formality": [0.25, 0.60], "palette": 5},
+    {"id": "t10", "title": "Black Crew-neck",            "hex": "#000000", "fabric": "cotton-knit",  "collar": "crew",   "pattern": "plain",   "formality": [0.25, 0.60], "palette": 2},
+    {"id": "rust-crew",  "title": "Rust Crew-neck",      "hex": "#993D00", "fabric": "cotton-knit",  "collar": "crew",   "pattern": "plain",   "formality": [0.25, 0.55], "palette": 10},
+    {"id": "wine-crew",  "title": "Wine Crew-neck",      "hex": "#5E2129", "fabric": "cotton-knit",  "collar": "crew",   "pattern": "plain",   "formality": [0.28, 0.60], "palette": 9},
+    {"id": "wine-polo",  "title": "Wine Polo",           "hex": "#5E2129", "fabric": "cotton-pique", "collar": "polo",   "pattern": "plain",   "formality": [0.32, 0.62], "palette": 9},
+    {"id": "t13", "title": "Navy Linen Shirt (Hamptons)","hex": "#000044", "fabric": "linen",        "collar": "point",  "pattern": "graphic", "formality": [0.32, 0.50], "palette": 4},
+    {"id": "t11", "title": "Striped Camp Collar Shirt",  "hex": "#FFFFFF", "fabric": "slub",         "collar": "camp",   "pattern": "vstripe", "formality": [0.33, 0.58], "palette": 5},
+    {"id": "t5",  "title": "Rustic Button-down",         "hex": "#993D00", "fabric": "cotton-woven", "collar": "button-down", "pattern": "plain", "formality": [0.35, 0.55], "palette": 10},
+    {"id": "t19", "title": "Navy Striped Shirt (SS)",    "hex": "#000044", "fabric": "cotton-woven", "collar": "point",  "pattern": "vstripe", "formality": [0.35, 0.55], "palette": 4},
+    {"id": "t20", "title": "Navy Oversized Shirt",       "hex": "#000044", "fabric": "linen-blend",  "collar": "point",  "pattern": "plain",   "formality": [0.35, 0.55], "palette": 4},
+    {"id": "t12", "title": "Forest Corduroy Shirt",      "hex": "#013220", "fabric": "corduroy",     "collar": "point",  "pattern": "plain",   "formality": [0.38, 0.58], "palette": 8},
+    {"id": "ws-stripe", "title": "White LS Shirt / black stripes", "hex": "#FFFFFF", "fabric": "linen-blend", "collar": "point", "pattern": "vstripe", "formality": [0.38, 0.62], "palette": 5},
+    {"id": "ns-stripe", "title": "Navy LS Shirt / white stripes",  "hex": "#000044", "fabric": "linen-blend", "collar": "point", "pattern": "vstripe", "formality": [0.38, 0.62], "palette": 5},
+    {"id": "8fuodinl1", "title": "White Formal Shirt",   "hex": "#FFFFFF", "fabric": "poplin",       "collar": "point",  "pattern": "plain",   "formality": [0.55, 0.85], "palette": 5}
+  ],
+  "bottoms": [
+    {"id": "0zrthxzlt", "title": "Black Lounge Pants",  "hex": "#000000", "fabric": "cotton-knit",  "leg": "long",  "cut": "relaxed",  "formality": [0.12, 0.38], "palette": 2},
+    {"id": "blk-shorts",   "title": "Black Shorts",     "hex": "#000000", "fabric": "cotton-woven", "leg": "short", "cut": "regular",  "formality": [0.18, 0.38], "palette": 2},
+    {"id": "beige-shorts", "title": "Beige Shorts",     "hex": "#D6C7AE", "fabric": "cotton-woven", "leg": "short", "cut": "regular",  "formality": [0.20, 0.42], "palette": 9},
+    {"id": "b3", "title": "Light-blue Denim",           "hex": "#ADD8E6", "fabric": "denim",        "leg": "long",  "cut": "straight", "formality": [0.22, 0.45], "palette": 5},
+    {"id": "navy-linen-shorts", "title": "Navy Linen Shorts", "hex": "#000044", "fabric": "linen",  "leg": "short", "cut": "regular",  "formality": [0.25, 0.48], "palette": 4},
+    {"id": "b5", "title": "Camel Chinos",               "hex": "#A96800", "fabric": "cotton-chino", "leg": "long",  "cut": "regular",  "formality": [0.38, 0.62], "palette": 10},
+    {"id": "b2", "title": "Beige Linen Pants",          "hex": "#F5F5DC", "fabric": "linen",        "leg": "long",  "cut": "wide",     "formality": [0.40, 0.62], "palette": 8},
+    {"id": "brown-chinos", "title": "Dark Brown Chinos","hex": "#4A3020", "fabric": "cotton-chino", "leg": "long",  "cut": "regular",  "formality": [0.40, 0.65], "palette": 10},
+    {"id": "b1", "title": "Black Pleated Wide Pants",   "hex": "#000000", "fabric": "poly-viscose", "leg": "long",  "cut": "wide",     "formality": [0.45, 0.72], "palette": 2}
+  ],
+  "shoes": [
+    {"id": "cork-sandals", "title": "Cork Sandals (light olive)", "hex": "#8A8B5C", "fabric": "cork",    "formality": [0.18, 0.40], "palette": 9,  "rain": 2},
+    {"id": "xfgc52qo3",    "title": "Onitsuka Mexico 66",         "hex": "#000000", "fabric": "leather", "formality": [0.25, 0.46], "palette": 2,  "rain": -1},
+    {"id": "a34xr25qw",    "title": "Adidas Sambas",              "hex": "#000000", "fabric": "suede",   "formality": [0.25, 0.48], "palette": 2,  "rain": -2}
+  ]
+}

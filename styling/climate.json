@@ -1,0 +1,32 @@
+{
+  "_source": "Vietnam Institute for Building Science and Technology (IBST) station data, via Wikipedia climate tables. Retrieved 2026-08-15.",
+  "_urls": {
+    "hanoi": "https://en.wikipedia.org/wiki/Hanoi#Climate",
+    "danang": "https://en.wikipedia.org/wiki/Da_Nang#Climate",
+    "hcmc": "https://en.wikipedia.org/wiki/Climate_of_Vietnam"
+  },
+  "month": "August",
+  "locations": {
+    "hanoi": {
+      "mean_high_c": 32.6, "mean_low_c": 26.1, "mean_c": 28.7,
+      "humidity_pct": 82.7, "rain_mm": 309.4, "rainy_days": 16.5,
+      "days_in_month": 31, "verified": true
+    },
+    "danang": {
+      "mean_high_c": 33.9, "mean_low_c": 25.6, "mean_c": 29.0,
+      "humidity_pct": 77.4, "rain_mm": 141.2, "rainy_days": 11.6,
+      "days_in_month": 31, "verified": true
+    },
+    "hcmc": {
+      "mean_high_c": 31.6, "mean_low_c": 23.9, "mean_c": 27.0,
+      "humidity_pct": 82.0, "rain_mm": 270.0, "rainy_days": 20.0,
+      "days_in_month": 31, "verified": false,
+      "_caveat": "IBST Tan Son Nhat values could not be extracted directly; widely replicated but unverified in this session."
+    }
+  },
+  "_findings": [
+    "Diurnal range is only 6.5-8.3 C. Hanoi's August overnight LOW is 26.1 C at 82.7% humidity. There is no meaningful cooling at night.",
+    "Rain is the baseline condition, not an exception: 53% of August days in Hanoi, 65% in HCMC, 37% in Da Nang.",
+    "August is near Hanoi's wettest point (309mm, peak of the year) but is one of Da Nang's drier months; Da Nang's season peaks Sep-Nov."
+  ]
+}

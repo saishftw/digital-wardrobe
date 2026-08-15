@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Outfit Board — Vietnam, Aug 2026</title>
+<style>
+:root{
+  --bg:#0e1116; --panel:#161b22; --panel2:#1c2229; --line:#2a323c;
+  --ink:#e6edf3; --dim:#8b949e; --accent:#d29922;
+  --good:#2ea043; --ok:#7d8b1f; --mid:#9e6a1f; --bad:#8b2f2f;
+  --pick:#3fb950; --veto:#f85149;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 22px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{margin:0 0 4px;font-size:18px;letter-spacing:.2px}
+.sub{color:var(--dim);font-size:12px}
+.climate{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}
+.cchip{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+  padding:7px 11px;font-size:12px}
+.cchip b{color:var(--accent)}
+.cnote{margin-top:9px;font-size:12px;color:var(--dim);font-style:italic}
+nav{display:flex;gap:2px;padding:0 22px;background:var(--panel);
+  border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--dim);
+  padding:11px 16px;cursor:pointer;font-size:13px;font-family:inherit}
+nav button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.savestat{margin-left:auto;align-self:center;font-size:11px;color:var(--dim)}
+.savestat.okc2{color:var(--good)} .savestat.warnc{color:var(--mid)}
+main{padding:20px 22px;max-width:1500px}
+.view{display:none} .view.on{display:block}
+.layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+@media(max-width:1150px){.layout{grid-template-columns:1fr}}
+
+table{border-collapse:separate;border-spacing:2px;font-size:12px}
+th{font-weight:500;color:var(--dim);padding:5px;text-align:left;font-size:11px}
+th.rot{writing-mode:vertical-rl;transform:rotate(180deg);height:88px;
+  vertical-align:bottom;padding-bottom:6px}
+td.cell{width:46px;height:34px;text-align:center;border-radius:5px;cursor:pointer;
+  position:relative;font-variant-numeric:tabular-nums;color:#fff;font-weight:500}
+td.cell:hover{outline:2px solid var(--ink)}
+td.cell.sel{outline:2px solid var(--accent)}
+td.cell .g{position:absolute;top:2px;right:3px;width:6px;height:6px;border-radius:50%}
+td.cell.dim{opacity:.22}
+.rowlab{white-space:nowrap;padding-right:8px;color:var(--ink);font-size:12px}
+.sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;
+  border:1px solid #0006;vertical-align:middle}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.panel h3{margin:0 0 10px;font-size:14px}
+.panel h4{margin:16px 0 7px;font-size:12px;color:var(--dim);text-transform:uppercase;
+  letter-spacing:.6px;font-weight:600}
+.big{font-size:30px;font-weight:600;line-height:1}
+.muted{color:var(--dim);font-size:12px}
+.note{background:var(--panel2);border-left:2px solid var(--accent);padding:9px 11px;
+  border-radius:0 6px 6px 0;font-size:12.5px;margin:11px 0;color:#c9d1d9}
+.btnrow{display:flex;gap:8px;margin-top:12px}
+button.act{flex:1;padding:8px;border-radius:7px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--ink);cursor:pointer;font-size:12px;font-family:inherit}
+button.act:hover{border-color:var(--dim)}
+button.act.pick.on{background:var(--pick);border-color:var(--pick);color:#04140a}
+button.act.veto.on{background:var(--veto);border-color:var(--veto);color:#1a0505}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin:12px 0}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;
+  vertical-align:-1px}
+ul.tight{margin:6px 0;padding-left:17px} ul.tight li{margin:3px 0}
+.pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10.5px;
+  border:1px solid var(--line);color:var(--dim);margin-left:5px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:11px}
+.pcard{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:11px}
+.pcard.out{opacity:.42}
+.pcard label{display:flex;gap:8px;align-items:center;cursor:pointer;font-size:12.5px}
+.stat{display:flex;justify-content:space-between;padding:6px 0;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.stat:last-child{border:0}
+.bar{height:5px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.dayrow{display:grid;grid-template-columns:82px 1fr auto;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--line);align-items:center}
+.dayrow:last-child{border:0}
+.dtag{font-size:10px;padding:1px 6px;border-radius:8px;border:1px solid var(--line);
+  color:var(--dim)}
+canvas{display:block;margin:0 auto}
+.warn{color:var(--veto)} .okc{color:var(--pick)}
+code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:11.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Outfit Board — Thailand // Vietnam, 16–24 Aug 2026</h1>
+  <div class="sub">Hand-scored, climate-weighted. 14 tops × 9 bottoms × 3 shoes.</div>
+  <div class="climate" id="climate"></div>
+  <div class="cnote" id="cnote"></div>
+</header>
+
+<nav>
+  <button class="on" data-v="matrix">Matrix</button>
+  <button data-v="shoes">Bottoms × Shoes</button>
+  <button data-v="pack">Packing</button>
+  <button data-v="plan">9-Day Plan</button>
+  <button data-v="pieces">Piece Profiles</button>
+  <span id="savestat" class="savestat"></span>
+</nav>
+
+<main>
+  <!-- MATRIX -->
+  <section class="view on" id="v-matrix">
+    <div class="legend">
+      <span><i style="background:var(--good)"></i>85+ excellent</span>
+      <span><i style="background:var(--ok)"></i>75–84 strong</span>
+      <span><i style="background:var(--mid)"></i>62–74 wearable</span>
+      <span><i style="background:var(--bad)"></i>&lt;62 avoid</span>
+      <span><i style="background:var(--pick);border-radius:50%"></i>your pick</span>
+      <span><i style="background:var(--veto);border-radius:50%"></i>your veto</span>
+      <span style="margin-left:auto">Click a cell to inspect · grade it in the panel</span>
+    </div>
+    <div class="layout">
+      <div style="overflow-x:auto"><table id="mtx"></table></div>
+      <div class="panel" id="detail"></div>
+    </div>
+  </section>
+
+  <!-- SHOES -->
+  <section class="view" id="v-shoes">
+    <div class="layout">
+      <div>
+        <div class="note">Footwear is nearly a constant offset — it rarely changes
+          <em>which</em> bottom is better, it changes how good everything is. The one
+          real exception is rain: suede is ruined by it and you have a 37–65% chance
+          of rain on any given day.</div>
+        <div style="overflow-x:auto"><table id="smtx"></table></div>
+      </div>
+      <div class="panel" id="sdetail"><h3>Footwear</h3>
+        <p class="muted">Click a cell to compare.</p></div>
+    </div>
+  </section>
+
+  <!-- PACKING -->
+  <section class="view" id="v-pack">
+    <div class="layout">
+      <div>
+        <h3 style="margin-top:0">What are you packing?</h3>
+        <p class="muted">Untick a piece to see what it costs you. The stats update live.</p>
+        <h4>Tops</h4><div class="grid3" id="pk-tops"></div>
+        <h4>Bottoms</h4><div class="grid3" id="pk-bottoms"></div>
+        <h4>Shoes</h4><div class="grid3" id="pk-shoes"></div>
+      </div>
+      <div class="panel" id="pkstats"></div>
+    </div>
+  </section>
+
+  <!-- PLAN -->
+  <section class="view" id="v-plan">
+    <div class="layout">
+      <div class="panel"><h3 style="margin-top:0">Suggested rotation</h3>
+        <p class="muted">Best available outfit per day from what you have packed, no
+          repeats, bottoms not worn on consecutive days. Temple days exclude shorts.</p>
+        <div id="planrows"></div>
+      </div>
+      <div class="panel" id="planside"></div>
+    </div>
+  </section>
+
+  <!-- PIECES -->
+  <section class="view" id="v-pieces">
+    <p class="muted">Every piece on the six axes. Look for shapes that are spiky
+      (specialists) versus round (workhorses).</p>
+    <div class="grid3" id="pcards"></div>
+  </section>
+</main>
+
+<script src="board-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const LS = { g:'dw-grades', p:'dw-packed', t:'dw-saved' };
+let grades = JSON.parse(localStorage.getItem(LS.g) || '{}');
+let packed = JSON.parse(localStorage.getItem(LS.p) || 'null');
+let localStamp = localStorage.getItem(LS.t) || '';
+const ALL = [...DATA.tops, ...DATA.bottoms, ...DATA.shoes];
+if (!packed) packed = Object.fromEntries(ALL.map(p => [p.id, true]));
+const save = () => { localStamp = new Date().toISOString();
+                     localStorage.setItem(LS.g, JSON.stringify(grades));
+                     localStorage.setItem(LS.p, JSON.stringify(packed));
+                     localStorage.setItem(LS.t, localStamp);
+                     pushToRepo(); };
+
+/* Autosave writes grades.json back into the repo when served by serve.js.
+   On Vercel (static, read-only) that endpoint doesn't exist, so we degrade to
+   localStorage + the Copy/Export buttons instead of pretending it saved. */
+let pushTimer = null, lastSent = '', readOnly = (location.protocol === 'file:');
+function setSaveStatus(txt, cls){
+  const el = document.getElementById('savestat');
+  if (el) { el.textContent = txt; el.className = 'savestat ' + (cls||''); }
+}
+function localMsg(){
+  const n = Object.keys(grades).length;
+  return `${n} graded · saved on this device — tap “Copy grades” to send them back`;
+}
+function pushToRepo(){
+  if (readOnly) { setSaveStatus(localMsg(), 'warnc'); return; }
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    const body = JSON.stringify({ grades, packed });
+    if (body === lastSent) return;
+    setSaveStatus('saving…', '');
+    fetch('save', { method:'POST', headers:{'Content-Type':'application/json'}, body })
+      .then(r => { if(!r.ok) throw new Error('HTTP '+r.status); lastSent = body;
+        const n = Object.keys(grades).length;
+        setSaveStatus(`saved to grades.json · ${n} graded`, 'okc2'); })
+      .catch(() => { readOnly = true; setSaveStatus(localMsg(), 'warnc'); });
+  }, 400);
+}
+
+const byId = id => ALL.find(p => p.id === id);
+const cellScore = (t,b) => DATA.matrix[t][DATA.bottoms.findIndex(x=>x.id===b)];
+const shoeScore = (b,s) => DATA.shoeMatrix[b][DATA.shoes.findIndex(x=>x.id===s)];
+const outfitScore = (t,b,s) => Math.round(cellScore(t,b)*0.75 + shoeScore(b,s)*0.25);
+const colorFor = v => v>=85?'var(--good)':v>=75?'var(--ok)':v>=62?'var(--mid)':'var(--bad)';
+
+/* ---------- climate banner ---------- */
+$('#climate').innerHTML = DATA.climate.cities.map(c =>
+  `<div class="cchip">${c.name} &nbsp; <b>${c.high}°C</b> day / ${c.low}°C night
+   &nbsp;·&nbsp; <b>${c.rh}%</b> humidity &nbsp;·&nbsp; rain <b>${c.rainPct}%</b> of days</div>`
+).join('');
+$('#cnote').textContent = DATA.climate.note;
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); $('#v-'+b.dataset.v).classList.add('on');
+  if (b.dataset.v==='plan') renderPlan();
+});
+
+/* ---------- radar ---------- */
+function radar(canvas, series, labels){
+  const c = canvas.getContext('2d'), W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2+6, R = Math.min(W,H)/2 - 34, N = labels.length;
+  c.clearRect(0,0,W,H);
+  const pt = (i,r) => { const a = -Math.PI/2 + i*2*Math.PI/N;
+    return [cx + Math.cos(a)*r, cy + Math.sin(a)*r]; };
+  for (let ring=1; ring<=4; ring++){
+    c.beginPath();
+    for (let i=0;i<N;i++){ const [x,y]=pt(i,R*ring/4); i?c.lineTo(x,y):c.moveTo(x,y); }
+    c.closePath(); c.strokeStyle = ring===4?'#3a444f':'#232a33'; c.stroke();
+  }
+  for (let i=0;i<N;i++){ const [x,y]=pt(i,R);
+    c.beginPath(); c.moveTo(cx,cy); c.lineTo(x,y); c.strokeStyle='#232a33'; c.stroke(); }
+  series.forEach(s => {
+    c.beginPath();
+    s.v.forEach((val,i) => { const [x,y]=pt(i,R*Math.max(val,0)/10); i?c.lineTo(x,y):c.moveTo(x,y); });
+    c.closePath(); c.fillStyle = s.fill; c.fill();
+    c.strokeStyle = s.stroke; c.lineWidth = s.w||2; c.stroke();
+  });
+  c.fillStyle = '#8b949e'; c.font = '10px -apple-system,sans-serif';
+  labels.forEach((L,i) => { const [x,y]=pt(i,R+16);
+    c.textAlign = Math.abs(x-cx)<6?'center':(x>cx?'left':'right');
+    c.textBaseline = y<cy-4?'bottom':(y>cy+4?'top':'middle');
+    c.fillText(L,x,y); });
+}
+const mix = (top,bot,shoe) => DATA.axes.map((_,i) => shoe
+  ? top.m[i]*0.45 + bot.m[i]*0.35 + shoe.m[i]*0.20
+  : (top.m[i]*0.45 + bot.m[i]*0.35) / 0.80);
+
+/* ---------- matrix ---------- */
+let sel = { t:'t5', b:'b2' };
+function renderMatrix(){
+  let h = '<tr><th></th>' + DATA.bottoms.map(b =>
+    `<th class="rot"><span class="sw" style="background:${b.color}"></span>${b.short}</th>`
+  ).join('') + '</tr>';
+  DATA.tops.forEach(t => {
+    h += `<tr><td class="rowlab"><span class="sw" style="background:${t.color}"></span>${t.name}</td>`;
+    DATA.bottoms.forEach(b => {
+      const v = cellScore(t.id,b.id), g = grades[t.id+'|'+b.id];
+      const off = !packed[t.id] || !packed[b.id];
+      h += `<td class="cell${off?' dim':''}${sel.t===t.id&&sel.b===b.id?' sel':''}"
+            style="background:${colorFor(v)}" data-t="${t.id}" data-b="${b.id}">${v}
+            ${g?`<span class="g" style="background:${g==='pick'?'var(--pick)':'var(--veto)'}"></span>`:''}</td>`;
+    });
+    h += '</tr>';
+  });
+  $('#mtx').innerHTML = h;
+  $('#mtx').querySelectorAll('.cell').forEach(td => td.onclick = () => {
+    sel = { t:td.dataset.t, b:td.dataset.b }; renderMatrix(); renderDetail();
+  });
+}
+function bestShoeFor(b){
+  return DATA.shoes.filter(s=>packed[s.id])
+    .sort((x,y)=>shoeScore(b,y.id)-shoeScore(b,x.id))[0] || null;
+}
+function renderDetail(){
+  const t = byId(sel.t), b = byId(sel.b), s = bestShoeFor(b.id);
+  const base = cellScore(t.id,b.id), full = s ? outfitScore(t.id,b.id,s.id) : null;
+  const g = grades[t.id+'|'+b.id], note = DATA.notes[t.id+'|'+b.id];
+  $('#detail').innerHTML = `
+    <h3>${t.name} <span class="muted">+</span> ${b.name}</h3>
+    <div class="muted" style="margin-bottom:10px">${t.fabric} · ${b.fabric}</div>
+    <div style="display:flex;gap:20px;align-items:baseline">
+      <div><div class="big" style="color:${colorFor(base)}">${base}</div>
+        <div class="muted">pair</div></div>
+      <div><div class="big" style="color:${s?colorFor(full):'#7d8590'}">${s?full:'—'}</div>
+        <div class="muted">${s?'with '+s.name.split(' (')[0]:'no shoes packed'}</div></div>
+    </div>
+    ${note?`<div class="note">${note}</div>`:''}
+    <canvas id="rad" width="300" height="250"></canvas>
+    <div class="legend" style="justify-content:center">
+      <span><i style="background:#d29922"></i>outfit</span>
+      <span><i style="background:#58a6ff"></i>top</span>
+      <span><i style="background:#3fb950"></i>bottom</span>
+    </div>
+    <h4>Your verdict</h4>
+    <div class="btnrow">
+      <button class="act pick ${g==='pick'?'on':''}" id="bp">Wear it</button>
+      <button class="act veto ${g==='veto'?'on':''}" id="bv">Not this</button>
+    </div>
+    <h4>All footwear</h4>
+    ${DATA.shoes.map(sh=>`<div class="stat"><span>${sh.name}</span>
+      <b style="color:${colorFor(outfitScore(t.id,b.id,sh.id))}">${outfitScore(t.id,b.id,sh.id)}</b></div>`).join('')}
+  `;
+  radar($('#rad'), [
+    { v:t.m, fill:'rgba(88,166,255,.10)', stroke:'#58a6ff', w:1.4 },
+    { v:b.m, fill:'rgba(63,185,80,.10)',  stroke:'#3fb950', w:1.4 },
+    { v:mix(t,b,s), fill:'rgba(210,153,34,.22)', stroke:'#d29922', w:2.4 }
+  ], DATA.axes);
+  $('#bp').onclick = () => { grades[sel.t+'|'+sel.b] = g==='pick'?undefined:'pick';
+    if(!grades[sel.t+'|'+sel.b]) delete grades[sel.t+'|'+sel.b];
+    save(); renderMatrix(); renderDetail(); };
+  $('#bv').onclick = () => { grades[sel.t+'|'+sel.b] = g==='veto'?undefined:'veto';
+    if(!grades[sel.t+'|'+sel.b]) delete grades[sel.t+'|'+sel.b];
+    save(); renderMatrix(); renderDetail(); };
+}
+
+/* ---------- shoe matrix ---------- */
+function renderShoes(){
+  let h = '<tr><th></th>' + DATA.shoes.map(s=>`<th style="padding:6px 10px">${s.name}</th>`).join('') + '</tr>';
+  DATA.bottoms.forEach(b => {
+    h += `<tr><td class="rowlab"><span class="sw" style="background:${b.color}"></span>${b.name}</td>`;
+    DATA.shoes.forEach(s => { const v = shoeScore(b.id,s.id);
+      h += `<td class="cell" style="background:${colorFor(v)};width:88px"
+             data-b="${b.id}" data-s="${s.id}">${v}</td>`; });
+    h += '</tr>';
+  });
+  $('#smtx').innerHTML = h;
+  $('#smtx').querySelectorAll('.cell').forEach(td => td.onclick = () => {
+    const b = byId(td.dataset.b), s = byId(td.dataset.s);
+    $('#sdetail').innerHTML = `<h3>${b.name} + ${s.name}</h3>
+      <div class="big" style="color:${colorFor(shoeScore(b.id,s.id))}">${shoeScore(b.id,s.id)}</div>
+      <canvas id="srad" width="300" height="250"></canvas>
+      <div class="legend" style="justify-content:center">
+        <span><i style="background:#3fb950"></i>bottom</span>
+        <span><i style="background:#d29922"></i>shoe</span></div>`;
+    radar($('#srad'), [
+      { v:b.m, fill:'rgba(63,185,80,.12)', stroke:'#3fb950', w:1.6 },
+      { v:s.m, fill:'rgba(210,153,34,.18)', stroke:'#d29922', w:2.2 }
+    ], DATA.axes);
+  });
+}
+
+/* ---------- packing ---------- */
+function pcard(p, kind){
+  return `<div class="pcard ${packed[p.id]?'':'out'}">
+    <label><input type="checkbox" ${packed[p.id]?'checked':''} data-id="${p.id}">
+      <span class="sw" style="background:${p.color}"></span>${p.name}</label>
+    <div class="muted" style="margin-top:5px">${p.fabric}${kind==='top'?' · '+p.collar:''}</div>
+  </div>`;
+}
+function viable(minScore){
+  const out = [];
+  DATA.tops.filter(t=>packed[t.id]).forEach(t =>
+    DATA.bottoms.filter(b=>packed[b.id]).forEach(b => {
+      const s = bestShoeFor(b.id);
+      if (!s) return;
+      const v = outfitScore(t.id,b.id,s.id);
+      if (v >= minScore && grades[t.id+'|'+b.id] !== 'veto') out.push({t,b,s,v});
+    }));
+  return out.sort((a,b)=>b.v-a.v);
+}
+function renderPack(){
+  $('#pk-tops').innerHTML    = DATA.tops.map(p=>pcard(p,'top')).join('');
+  $('#pk-bottoms').innerHTML = DATA.bottoms.map(p=>pcard(p)).join('');
+  $('#pk-shoes').innerHTML   = DATA.shoes.map(p=>pcard(p)).join('');
+  document.querySelectorAll('.pcard input').forEach(i => i.onchange = () => {
+    packed[i.dataset.id] = i.checked; save(); renderPack(); renderMatrix(); renderDetail();
+  });
+  const good = viable(75), ok = viable(62);
+  const items = ALL.filter(p=>packed[p.id]).length;
+  const temple = ok.filter(o=>o.b.leg!=='short').length;
+  const rainSafe = ok.filter(o=>o.s.id!=='smb').length;
+  const dead = DATA.tops.filter(t=>packed[t.id] &&
+      !ok.some(o=>o.t.id===t.id)).map(t=>t.name);
+  const weak = DATA.tops.filter(t=>packed[t.id])
+      .map(t=>({t, best:Math.max(...DATA.bottoms.filter(b=>packed[b.id])
+          .map(b=>cellScore(t.id,b.id)), 0)}))
+      .filter(x=>x.best<66);
+  $('#pkstats').innerHTML = `
+    <h3>Packing report</h3>
+    <div class="stat"><span>Items packed</span><b>${items}</b></div>
+    <div class="stat"><span>Outfits 75+</span><b class="okc">${good.length}</b></div>
+    <div class="stat"><span>Outfits 62+</span><b>${ok.length}</b></div>
+    <div class="stat"><span>Temple-legal (long leg)</span><b>${temple}</b></div>
+    <div class="stat"><span>Rain-safe (no suede)</span><b>${rainSafe}</b></div>
+    <div class="stat"><span>Outfits per item</span><b>${items?(ok.length/items).toFixed(1):0}</b></div>
+    <h4>Efficiency</h4>
+    <div class="muted">Good outfits per item packed — higher is a leaner bag.</div>
+    <div class="bar"><i style="width:${Math.min(100,(good.length/Math.max(items,1))*45)}%"></i></div>
+    ${weak.length?`<h4>Earning its space?</h4><ul class="tight">${
+      weak.map(x=>`<li class="warn">${x.t.name} — best pairing only ${x.best}</li>`).join('')
+    }</ul>`:''}
+    ${dead.length?`<h4>Unwearable as packed</h4><ul class="tight">${
+      dead.map(n=>`<li class="warn">${n}</li>`).join('')}</ul>`:''}
+    <h4>Top 6 from this bag</h4>
+    <ul class="tight">${good.slice(0,6).map(o=>
+      `<li>${o.t.name} + ${o.b.short} <span class="pill">${o.v}</span></li>`).join('')||'<li class="muted">Nothing above 75.</li>'}</ul>
+    <div class="btnrow"><button class="act pick" id="cpy">Copy grades</button>
+      <button class="act" id="exp">Export JSON</button>
+      <button class="act" id="rst">Reset</button></div>
+    <div class="muted" style="margin-top:6px;font-size:11px">On your phone, tap
+      <b>Copy grades</b> and paste it into the chat — that's how your ratings get back.</div>`;
+  $('#cpy').onclick = async () => {
+    const txt = JSON.stringify({ grades, packed }, null, 2);
+    const btn = $('#cpy');
+    try {
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(txt);
+      else {                                   // http:// on a phone is not a secure context
+        const ta = document.createElement('textarea');
+        ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); ta.remove();
+      }
+      btn.textContent = `Copied ${Object.keys(grades).length} grades`;
+    } catch { btn.textContent = 'Press-and-hold to copy ↓';
+      const pre=document.createElement('textarea'); pre.value=txt;
+      pre.style.cssText='width:100%;height:120px;margin-top:8px';
+      btn.parentElement.after(pre); }
+    setTimeout(()=>{ btn.textContent='Copy grades'; }, 2500);
+  };
+  $('#exp').onclick = () => {
+    const blob = new Blob([JSON.stringify({packed,grades,generated:new Date().toISOString()},null,2)],
+      {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'vietnam-packing.json'; a.click();
+  };
+  $('#rst').onclick = () => { if(confirm('Clear grades and packing?')){
+    grades={}; packed=Object.fromEntries(ALL.map(p=>[p.id,true])); save();
+    renderPack(); renderMatrix(); renderDetail(); } };
+}
+
+/* ---------- day plan ---------- */
+function renderPlan(){
+  const usedCombo = new Set(); let prevBottom = null;
+  const tUse = {}, bUse = {}; const rows = [];
+  DATA.days.forEach(d => {
+    let pool = viable(0).filter(o => {
+      if (d.temple && o.b.leg === 'short') return false;
+      if (usedCombo.has(o.t.id+o.b.id)) return false;
+      if (o.b.id === prevBottom) return false;
+      if (d.rain >= 60 && o.s.id === 'smb') return false;
+      return true;
+    });
+    pool = pool.map(o => ({...o, adj: o.v - 11*(tUse[o.t.id]||0) - 8*(bUse[o.b.id]||0)
+      + (grades[o.t.id+'|'+o.b.id]==='pick' ? 14 : 0)}))
+      .sort((a,b)=>b.adj-a.adj);
+    const pick = pool[0];
+    if (pick){ usedCombo.add(pick.t.id+pick.b.id); prevBottom = pick.b.id;
+      tUse[pick.t.id]=(tUse[pick.t.id]||0)+1; bUse[pick.b.id]=(bUse[pick.b.id]||0)+1; }
+    rows.push({d, pick});
+  });
+  $('#planrows').innerHTML = rows.map(({d,pick}) => `
+    <div class="dayrow">
+      <div><b>${d.date}</b><div class="muted" style="font-size:11px">${d.rain}% rain</div></div>
+      <div>${pick ? `${pick.t.name} + ${pick.b.name}
+        <div class="muted" style="font-size:11.5px">${pick.s.name}
+        ${d.temple?'<span class="dtag">temple</span>':''}
+        ${d.type==='night'?'<span class="dtag">night</span>':''}</div>`
+        : '<span class="warn">no outfit available</span>'}</div>
+      <div style="text-align:right"><b style="color:${pick?colorFor(pick.v):'var(--veto)'}">${pick?pick.v:'—'}</b></div>
+    </div>`).join('');
+  const scores = rows.filter(r=>r.pick).map(r=>r.pick.v);
+  const worst = scores.length ? Math.min(...scores) : null;
+  const avg   = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : null;
+  const laundry = {};
+  rows.forEach(r=>{ if(r.pick){ laundry[r.pick.t.name]=(laundry[r.pick.t.name]||0)+1; }});
+  $('#planside').innerHTML = `<h3>Plan health</h3>
+    <div class="stat"><span>Weakest day</span><b style="color:${worst!==null?colorFor(worst):'var(--veto)'}">${worst!==null?worst:'—'}</b></div>
+    <div class="stat"><span>Average</span><b>${avg!==null?avg:'—'}</b></div>
+    <div class="stat"><span>Days covered</span><b>${scores.length} / ${DATA.days.length}</b></div>
+    ${scores.length < DATA.days.length ? `<div class="warn" style="margin:8px 0">${DATA.days.length-scores.length} day(s) have no wearable outfit from what you have packed.</div>` : ''}
+    <h4>Wear counts (laundry)</h4>
+    <ul class="tight">${Object.entries(laundry).sort((a,b)=>b[1]-a[1])
+      .map(([n,c])=>`<li>${n} <span class="pill">${c}×</span></li>`).join('')}</ul>
+    <div class="note">Marking a pairing <b>Wear it</b> in the Matrix tab pushes it up
+      this plan. Your judgement outranks the score.</div>`;
+}
+
+/* ---------- piece profiles ---------- */
+function renderPieces(){
+  const groups = [['Tops',DATA.tops,'#58a6ff'],['Bottoms',DATA.bottoms,'#3fb950'],
+                  ['Shoes',DATA.shoes,'#d29922']];
+  $('#pcards').innerHTML = groups.flatMap(([g,arr,col]) => arr.map(p =>
+    `<div class="pcard"><div style="font-size:12.5px;margin-bottom:2px">
+       <span class="sw" style="background:${p.color}"></span><b>${p.name}</b></div>
+     <div class="muted" style="margin-bottom:6px">${g.slice(0,-1)} · ${p.fabric}</div>
+     <canvas width="215" height="185" data-p="${p.id}" data-c="${col}"></canvas></div>`
+  )).join('');
+  $('#pcards').querySelectorAll('canvas').forEach(cv => {
+    const p = byId(cv.dataset.p);
+    radar(cv, [{ v:p.m, fill:cv.dataset.c+'26', stroke:cv.dataset.c, w:2 }], DATA.axes);
+  });
+}
+
+renderMatrix(); renderDetail(); renderShoes(); renderPack(); renderPieces();
+
+/* grades.json is authoritative only when it is NEWER than what this device has.
+   On Vercel the file is a static snapshot from the last deploy, so without this
+   check a phone reload would wipe grading done on the phone. */
+if (location.protocol !== 'file:') {
+  fetch('grades.json', { cache:'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(j => {
+      if (!j || !j.grades) { setSaveStatus(localStamp ? localMsg() : 'ready', ''); return; }
+      const fileTime  = Date.parse(j.saved || '') || 0;
+      const localTime = Date.parse(localStamp || '') || 0;
+      if (localTime > fileTime) {                       // this device is ahead — keep it
+        setSaveStatus(`${Object.keys(grades).length} graded on this device (newer than the published file)`, 'warnc');
+        return;
+      }
+      if (Object.keys(j.grades).length) grades = j.grades;
+      if (j.packed && Object.keys(j.packed).length) packed = j.packed;
+      lastSent = JSON.stringify({ grades, packed });
+      localStorage.setItem(LS.g, JSON.stringify(grades));
+      localStorage.setItem(LS.p, JSON.stringify(packed));
+      localStorage.setItem(LS.t, j.saved || new Date().toISOString());
+      renderMatrix(); renderDetail(); renderShoes(); renderPack(); renderPieces();
+      setSaveStatus(`loaded grades.json · ${Object.keys(grades).length} graded`, 'okc2');
+    })
+    .catch(() => setSaveStatus(localStamp ? localMsg() : 'ready', ''));
+}
+</script>
+</body>
+</html>
